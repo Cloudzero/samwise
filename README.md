@@ -14,7 +14,7 @@ SAMWise was born out of the desire to create the same enjoyable developer experi
 [Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible.
 
 SAMWise's primary goal is to provide that same awesome developer experience without locking you into a third party tool,
-including this one. If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will you
+including this one. If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will
 support you there and back again.
 
 ### So, what was missing from the AWS CLI and SAM CLI?

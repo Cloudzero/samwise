@@ -6,7 +6,7 @@ applications but found the SAM CLI just a little bit wanting, SAMWise was create
 
 # Language Support:
 > Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯
-- :python: Python 3.6 and 3.7
+- :snake: Python 3.6 and 3.7
 
 ## Why SAMWise
 SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
@@ -88,11 +88,11 @@ Here's what's on the SAMWise roadmap (in priority order:
     amazing job and SAMWise has not
     - If SAMWise starts to show promise, then Javascript would likely be next 
 
+### Contributing
+SAMWise has only one contributor right now but PR's and bug reports are welcome! If you want to discuss SAMWise, 
+Serverless or even the weather, please feel free to reach me (Erik) on Twitter at [@silvexis](https://twitter.com/@silvexis), DM's are open and welcome.
+
 ### Last word
 SAMWise exists to fill a need that right now the native tools from AWS do not and were preventing me from migrating from
 the Serverless framework to SAM. I would love nothing more than to sit down with the AWS SAM CLI team and figure out how
 to end-of-life SAMWise. Until then, well, development waits for no one!
-
-#### Contributing
-SAMWise has only one contributor right now but PR's and bug reports are welcome! If you want to discuss SAMWise, 
-Serverless or even the weather, please feel free to reach me (Erik) on Twitter at @silvexis, DM's are open and welcome.

@@ -11,10 +11,11 @@ found the SAM CLI just a little bit wanting, SAMWise was created for you
 ## Why SAMWise
 SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
 [Serverless Framework](https://www.serverless.com) but while using AWS's 
-[Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible. This
-projects primary goal is to provide that same awesome developer experience without locking you into a third party tool,
+[Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible.
+
+SAMWise's primary goal is to provide that same awesome developer experience without locking you into a third party tool,
 including this one. If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will you
-support you there and back again and all the way to the end of the journey.
+support you there and back again.
 
 ### So, what was missing from the AWS CLI and SAM CLI?
 One of the greatest things about the Serverless Framework CLI (or `sls`) is its ease of use and flexibility. 
@@ -22,8 +23,8 @@ With `sls` you could go from and idea to your first running Serverless applicati
 a few lines of code and then on to a running Serverless app with a single command line deploy. In addition `sls`
 provided a clear indication of success or failure after deploy along with a nice summary. 
 
-While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling comes close, 
-yet falls short of this goal :disappointed:
+While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling (at least today)
+falls short of this goal :disappointed:
 
 #### Example:
 

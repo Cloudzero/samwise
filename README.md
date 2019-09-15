@@ -83,8 +83,8 @@ Here's what's on the SAMWise roadmap (in priority order:
 2. During/Post-Deployment stats and notifications
     - Currently deployment output sucks and is practically non-existent, this is however one of the main goals of this
     tool so it's coming soon. No rest for the wicked and all that...
-3. Support more run-times
-    - It would be nice to support more run-times than just Python. This is where the SAM CLI actually has done an
+3. Support more Languages/runtimes
+    - It would be nice to support more than just Python. This is where the SAM CLI actually has done an
     amazing job and SAMWise has not
     - If SAMWise starts to show promise, then Javascript would likely be next 
 

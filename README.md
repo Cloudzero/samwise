@@ -15,18 +15,21 @@ found the SAM CLI just a little bit wanting, SAMWise was created for you!
 ## Why SAMWise
 SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
 [Serverless Framework](https://www.serverless.com) but while using AWS's 
-[Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible 
-such as the AWS CLI and SAM CLI. The end result is to provide an awesome developer experience that doesn't lock you
-into a third party tool if you ever want to switch back to pure SAM/CloudFormation.
+[Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible. This
+projects primary goal is to provide an awesome developer experience that doesn't lock you into a third party tool
+if you ever want to switch back to pure SAM/CloudFormation.
 
 ### So, what was missing from the AWS CLI and SAM CLI?
 One of the greatest things about the Serverless Framework CLI (or `sls`) is its ease of use and flexibility. 
-With `sls` you could go from and ideal to your first running Serverless application with just a small amount of yaml and 
-a few lines of code with a single command line deploy. In addition `sls` provides a clear indication of success or
-failure after deploy along with a nice summary. While all the building blocks are there, none of these properties exist
-today with the native AWS tooling. 
+With `sls` you could go from and idea to your first running Serverless application with a small amount of yaml and 
+a few lines of code and then on to a running Serverless app with a single command line deploy. In addition `sls`
+provided a clear indication of success or failure after deploy along with a nice summary. While all the building
+blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling comes close, but still falls short of
+this goal :disappointed:
 
-*Pure awesome:*
+#### Example:
+
+**Pure awesome:**
 
     $ sls deploy -s dev --aws-profile my-account
 
@@ -34,7 +37,7 @@ This just isn't possible with the SAM CLI (or `sam`) which requires at least 4 s
 different command line options to remember. When you are trying to rapidly iterate on a project you might find 
 yourself running that `sls` command hundreds of times a day, doing this with `sam` becomes very painful, very fast.
 
-*Not so awesome:*
+**Not so awesome:**
 
     $ sam build --use-container
         ...
@@ -49,7 +52,7 @@ There are a few other items that complicate matters like not being able to do si
 a CloudFormation template, MFA support is poorly thought out and there is no way to extend the build system
 (e.g. plugins).
 
-## SAMWise to the rescue
+### SAMWise to the rescue
 When using SAMWise you have two choices, one you can add a SAMWise block to you SAM template.yaml file and rename it
 to samwise.yaml or leave your template.yaml alone and link to it in your samwise.yaml
 

@@ -6,11 +6,7 @@ finish line and is a tool for packaging and deploying AWS Serverless Application
 SAMWise is also an alternative to the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli).
 
 If you :heart: love the AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but
-found the SAM CLI just a little bit wanting, SAMWise was created for you!
-
-# Language Support:
-> Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯
-- :snake: Python 3.6 and 3.7
+found the SAM CLI just a little bit wanting, SAMWise was created for you
 
 ## Why SAMWise
 SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
@@ -80,6 +76,10 @@ This feature/idea isn't fully baked just yet. It's purpose isn't to add a featur
 For the moment however it is simple token substitution, in time however this will evolve to translate variables 
 into native CloudFormation mappings before generating the final templates so it will be very easy to return to
 pure CloudFormation.    
+
+### Language Support:
+> Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯
+- :snake: Python 3.6 and 3.7
 
 ## Roadmap
 Here's what's on the SAMWise roadmap (in priority order:

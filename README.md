@@ -1,5 +1,5 @@
 # SAMWise (Beta)
-> “Come on, Mr. Frodo. I can’t carry it for you… but I can carry you!”
+> “Come on, Mr. Frodo. I can’t carry it for you… but I can carry you!” -- Samwise Gamgee, Lord of the Rings
 
 SAMWise was designed to carry the [Serverless Application Model](https://aws.amazon.com/serverless/sam/) across the
 finish line and is a tool for packaging and deploying AWS Serverless Application Model applications.

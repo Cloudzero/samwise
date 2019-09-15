@@ -12,8 +12,9 @@ found the SAM CLI just a little bit wanting, SAMWise was created for you
 SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
 [Serverless Framework](https://www.serverless.com) but while using AWS's 
 [Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible. This
-projects primary goal is to provide an awesome developer experience that doesn't lock you into a third party tool
-if you ever want to switch back to pure SAM/CloudFormation.
+projects primary goal is to provide that same awesome developer experience without locking you into a third party tool,
+including this one. If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will you
+support you there and back again and all the way to the end of the journey.
 
 ### So, what was missing from the AWS CLI and SAM CLI?
 One of the greatest things about the Serverless Framework CLI (or `sls`) is its ease of use and flexibility. 
@@ -83,7 +84,7 @@ pure CloudFormation.
 - :snake: Python 3.6 and 3.7
 
 ## Roadmap
-Here's what's on the SAMWise roadmap (in priority order:
+Here's what's on the SAMWise roadmap (in priority order):
 1. Better packaging
     - Right now, SAMWise uses the SAM CLI for packaging, but it's slow, doesn't cache much, and
     packages everything regardless if that code has changed or not. 

@@ -19,9 +19,9 @@ support you there and back again.
 
 ### So, what was missing from the AWS CLI and SAM CLI?
 One of the greatest things about the Serverless Framework CLI (or `sls`) is its ease of use and flexibility. 
-With `sls` you could go from and idea to your first running Serverless application with a small amount of yaml and 
-a few lines of code and then on to a running Serverless app with a single command line deploy. In addition `sls`
-provided a clear indication of success or failure after deploy along with a nice summary. 
+With `sls` you could go from an idea to your first running Serverless application with just a small amount of yaml, 
+a few lines of code and a single command line deploy. In addition `sls` provided a clear indication of success or
+failure after deploy along with a nice summary. 
 
 While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling (at least today)
 falls short of this goal :disappointed:

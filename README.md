@@ -19,15 +19,16 @@ if you ever want to switch back to pure SAM/CloudFormation.
 One of the greatest things about the Serverless Framework CLI (or `sls`) is its ease of use and flexibility. 
 With `sls` you could go from and idea to your first running Serverless application with a small amount of yaml and 
 a few lines of code and then on to a running Serverless app with a single command line deploy. In addition `sls`
-provided a clear indication of success or failure after deploy along with a nice summary. While all the building
-blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling comes close, but still falls short of
-this goal :disappointed:
+provided a clear indication of success or failure after deploy along with a nice summary. 
+
+While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling comes close, 
+yet falls short of this goal :disappointed:
 
 #### Example:
 
 **Pure awesome:**
 
-    $ sls deploy -s dev --aws-profile my-account
+    $ sls deploy --aws-profile <aws profile name> -s <namespace>
 
 This just isn't possible with the SAM CLI (or `sam`) which requires at least 4 separate commands, each with 
 different command line options to remember. When you are trying to rapidly iterate on a project you might find 

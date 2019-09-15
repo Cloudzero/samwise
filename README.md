@@ -3,9 +3,10 @@
 
 SAMWise was designed to carry the [Serverless Application Model](https://aws.amazon.com/serverless/sam/) across the
 finish line and is a tool for packaging and deploying AWS Serverless Application Model applications.
-SAMWise is also an alternative to the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli). If you :heart: love the 
-AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but found the SAM CLI just a
-little bit wanting, SAMWise was created for you!
+SAMWise is also an alternative to the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli).
+
+If you :heart: love the AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but
+found the SAM CLI just a little bit wanting, SAMWise was created for you!
 
 # Language Support:
 > Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯

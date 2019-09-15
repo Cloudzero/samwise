@@ -1,0 +1,10 @@
+flake8
+flake8-copyright
+pytest
+pytest-env
+pytest-cov
+moto
+aws-sam-cli
+awscli
+tox
+-e .

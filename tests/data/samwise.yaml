@@ -1,0 +1,62 @@
+# Copyright (c) 2019 CloudZero, Inc. All rights reserved.
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+SAMWise:
+  Version: '1.0'
+  DeployBucket: 'sample-deploy-bucket'
+  StackName: 'MyStackName'
+  Variables:
+    - PromptForVar
+    - PreparedVar: "PreparedValue"
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample Test Template
+
+Parameters:
+  Namespace:
+    Type: String
+    Description: Unique (within a given AWS account) System Name
+    Default: #{Namespace}
+
+Globals:
+  Function:
+    Runtime: python3.7
+    CodeUri: ./src
+    Environment:
+      Variables:
+        LOG_LEVEL: INFO
+        NAMESPACE: #{Namespace}
+        FEATURE: #{StackName}
+        CONFIG: !Sub 's3://${ConfigBucket}/configuration.json'
+
+
+Resources:
+  PublicApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: #{Namespace}
+      TracingEnabled: true
+
+  # Functions
+  SampleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: #{Namespace}-#{StackName}-#{PreparedVar}-#{PromptForVar}-sample
+      Handler: functions/setup/handler.main
+      MemorySize: 128
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref ConfigBucket
+
+  # Buckets
+  ConfigBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '#{Namespace}-#{StackName}-${AWS::AccountId}'
+
+  # Topics
+  SampleEvents:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: '#{Namespace}-#{StackName}-events'

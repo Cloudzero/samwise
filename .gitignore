@@ -1,0 +1,47 @@
+# -*- coding: utf-8 -*-
+# Copyright (c) CloudZero, Inc. All rights reserved.
+# Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
+*.py[cod]
+__pycache__
+.DS_Store
+.python-version
+
+*.egg-info
+dist
+build
+sdist
+
+# test / coverage reports
+.tox
+test-results
+.cache
+.pytest_cache
+.hypothesis
+.coverage
+coverage.xml
+.flake8
+
+# Sphinx
+docs/_build
+docs/_static
+
+# IDE's
+.idea
+*~
+
+# local db
+*.db
+*.sqlite
+
+#junk
+*.pid
+*.backup
+*.log
+
+# Packages and Dependencies
+vendored/
+node_modules/
+.aws-sam
+.serverless
+.samwise

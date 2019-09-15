@@ -53,8 +53,8 @@ a CloudFormation template, MFA support is poorly thought out and there is no way
 (e.g. plugins).
 
 ### SAMWise to the rescue
-When using SAMWise you have two choices, one you can add a SAMWise block to you SAM template.yaml file and rename it
-to samwise.yaml or leave your template.yaml alone and link to it in your samwise.yaml
+SAMWise can be used in one of two ways. You can add a SAMWise block to you SAM template.yaml file and rename it
+to samwise.yaml or leave your template.yaml 100% alone (and valid CFN) and link to it in your samwise.yaml
 
     SAMWise:
       Version: '1.0'
@@ -65,7 +65,7 @@ to samwise.yaml or leave your template.yaml alone and link to it in your samwise
         - RuntimeVar                # Will prompt or require via CLI the value for RuntimeVar
         - PreparedVar: SomeValue    # Prepared variable 
 
-Then deploy your functions:
+Then deploy your stack:
 
     $ samwise deploy --profile <aws profile name> --namespace <namespace>
 
@@ -76,9 +76,10 @@ Then deploy your functions:
 
 ### A note on SAMWise's variable substitution feature
 This feature/idea isn't fully baked just yet. It's purpose isn't to add a feature that CloudFormation doesn't have
-(it does, mappings), but to allow for an easier, more pleasant on the eyes syntax for setting up mappings.
+(which it does, mappings), but to allow for a more pleasant, easier on the eyes syntax for setting up mappings.
 For the moment however it is simple token substitution, in time however this will evolve to translate variables 
-into native CloudFormation mappings before generating the templates so it's very easy to return to pure CloudFormation.    
+into native CloudFormation mappings before generating the final templates so it will be very easy to return to
+pure CloudFormation.    
 
 ## Roadmap
 Here's what's on the SAMWise roadmap (in priority order:
@@ -90,7 +91,8 @@ Here's what's on the SAMWise roadmap (in priority order:
 2. During/Post-Deployment stats and notifications
     - Currently deployment output sucks and is practically non-existent, this is however one of the main goals of this
     tool so it's coming soon. No rest for the wicked and all that...
-3. Support more Languages/runtimes
+3. Improve variable substitution and support the auto-generation of proper CFN mapping syntax   
+4. Support more Languages/runtimes
     - It would be nice to support more than just Python. This is where the SAM CLI actually has done an
     amazing job and SAMWise has not
     - If SAMWise starts to show promise, then Javascript would likely be next 

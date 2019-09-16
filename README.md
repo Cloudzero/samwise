@@ -52,17 +52,18 @@ a CloudFormation template, MFA support is poorly thought out and there is no way
 (e.g. plugins).
 
 ### SAMWise to the rescue
-SAMWise can be used in one of two ways. You can add a SAMWise block to you SAM template.yaml file and rename it
+SAMWise can be used in one of two ways. You can add a SAMWise block to the `Metadata` section of your SAM template.yaml file and rename it
 to samwise.yaml or leave your template.yaml 100% alone (and valid CFN) and link to it in your samwise.yaml
 
-    SAMWise:
-      Version: '1.0'
-      DeployBucket: <S3 DEPLOY BUCKET>
-      StackName: <YOUR STACK NAME>  # StackName is also provided as a #{Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
-      SamTemplate: template.yaml    # OPTIONAL if you don't want to touch your template.yaml
-      Variables:                    # Provides simple #{Variable} token replacement within your template
-        - RuntimeVar                # Will prompt or require via CLI the value for RuntimeVar
-        - PreparedVar: SomeValue    # Prepared variable 
+    Metadata:
+      SAMWise:
+        Version: '1.0'
+        DeployBucket: <S3 DEPLOY BUCKET>
+        StackName: <YOUR STACK NAME>  # StackName is also provided as a #{Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
+        SamTemplate: template.yaml    # OPTIONAL if you don't want to touch your template.yaml
+        Variables:                    # Provides simple #{Variable} token replacement within your template
+          - RuntimeVar                # Will prompt or require via CLI the value for RuntimeVar
+          - PreparedVar: SomeValue    # Prepared variable 
 
 Then deploy your stack:
 
@@ -101,8 +102,13 @@ Here's what's on the SAMWise roadmap (in priority order):
     - If SAMWise starts to show promise, then Javascript would likely be next 
 
 ### Contributing
-SAMWise has only one contributor right now but PR's and bug reports are welcome! If you want to discuss SAMWise, 
-Serverless or even the weather, please feel free to reach me (Erik) on Twitter at [@silvexis](https://twitter.com/@silvexis), DM's are open and welcome.
+PR's and bug reports are welcome! If you want to discuss SAMWise, Serverless or even the weather, please feel free to reach out to any of the following contributors:
+
+Maintainer:
+- Erik Peterson [@silvexis](https://twitter.com/silvexis)
+
+Contributors:
+- Adam Tankanow [@atankanow](https://twitter.com/atankanow)
 
 ### Last word
 SAMWise exists to fill a need that right now the native tools from AWS do not and were preventing me from migrating from

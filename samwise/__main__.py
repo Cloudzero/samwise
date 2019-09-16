@@ -27,12 +27,10 @@ import os
 import sys
 
 from docopt import docopt
-
-from samwise import __version__
-from samwise import constants
+from samwise import __version__, constants
 from samwise.exceptions import UnsupportedSAMWiseVersion
 from samwise.features.generate import parse
-from samwise.handler import load, display, save
+from samwise.handler import display, load, save
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
 

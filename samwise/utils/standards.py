@@ -2,7 +2,7 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 from datetime import datetime, timezone
-from decimal import Decimal, ROUND_DOWN
+from decimal import ROUND_DOWN, Decimal
 
 import dateutil.parser as parser
 

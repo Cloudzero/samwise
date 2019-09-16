@@ -5,10 +5,10 @@ import sys
 from pathlib import Path
 
 from ruamel.yaml import YAML
-from voluptuous import Schema, Any, All, Length, Required, Optional, MultipleInvalid, Invalid, ALLOW_EXTRA
 
 from samwise import constants
 from samwise.exceptions import UnsupportedSAMWiseVersion
+from voluptuous import REMOVE_EXTRA, All, Length, Optional, Required, Schema
 
 
 def load(input_file_name, namespace):
@@ -23,18 +23,16 @@ def load(input_file_name, namespace):
         Required('StackName'): str,
         Optional('Variables'): list,
         Optional('SamTemplate'): str
-    })
+    }, extra=REMOVE_EXTRA)
 
-    metadata = samwise_obj.get(constants.SAMWISE_METADATA_KEY)
     try:
+        metadata = samwise_obj[constants.CFN_METADATA_KEY][constants.SAMWISE_METADATA_KEY]
         samwise_metadata = samwise_schema(metadata)
 
         if samwise_metadata.get('SamTemplate'):
             template_obj = yaml.load(samwise_metadata.get('SamTemplate'))
         else:
             template_obj = samwise_obj
-            # remove SAMWise Metadata from template
-            del template_obj[constants.SAMWISE_METADATA_KEY]
 
         # Add stack name and namespace to available variables
         try:

@@ -102,10 +102,13 @@ Here's what's on the SAMWise roadmap (in priority order):
     - If SAMWise starts to show promise, then Javascript would likely be next 
 
 ### Contributing
-SAMWise has only one contributor right now but PR's and bug reports are welcome! If you want to discuss SAMWise, 
-Serverless or even the weather, please feel free to reach me (Erik) on Twitter at [@silvexis](https://twitter.com/@silvexis), DM's are open and welcome.
+PR's and bug reports are welcome! If you want to discuss SAMWise, Serverless or even the weather, please feel free to reach out to any of the following contributors:
 
-Forward inquiries re breaking changes to [@atankanow](https://twitter.com/atankanow). HINT: Don't.
+Maintainer:
+- Erik Peterson [@silvexis](https://twitter.com/silvexis)
+
+Contributors:
+- Adam Tankanow [@atankanow](https://twitter.com/atankanow)
 
 ### Last word
 SAMWise exists to fill a need that right now the native tools from AWS do not and were preventing me from migrating from

@@ -4,7 +4,7 @@
 
 import os
 import sys
-from subprocess import Popen, PIPE
+from subprocess import PIPE, Popen
 
 
 def execute_and_process(command, transform=None, env=None):

@@ -2,10 +2,10 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 from collections import OrderedDict
+
 import pytest
 
 import samwise.handler as handler
-
 
 valid_templates = ['tests/data/samwise.yaml', 'tests/data/linked-samwise.yaml']
 

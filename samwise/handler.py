@@ -5,10 +5,10 @@ import sys
 from pathlib import Path
 
 from ruamel.yaml import YAML
-from voluptuous import Schema, All, Length, Required, Optional, REMOVE_EXTRA
 
 from samwise import constants
 from samwise.exceptions import UnsupportedSAMWiseVersion
+from voluptuous import REMOVE_EXTRA, All, Length, Optional, Required, Schema
 
 
 def load(input_file_name, namespace):

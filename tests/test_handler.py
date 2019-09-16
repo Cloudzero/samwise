@@ -7,9 +7,13 @@ import pytest
 import samwise.handler as handler
 
 
-@pytest.fixture(scope="module")
-def valid_template():
-    return 'tests/data/samwise.yaml'
+valid_templates = ['tests/data/samwise.yaml', 'tests/data/linked-samwise.yaml']
+
+
+@pytest.fixture(params=valid_templates, scope="module")
+def valid_template(request):
+    return request.param
+
 
 @pytest.fixture(scope="module")
 def invalid_template():
@@ -19,6 +23,11 @@ def invalid_template():
 @pytest.fixture(scope="module")
 def non_samwise_template():
     return 'tests/data/non-samwise.yaml'
+
+
+@pytest.fixture(scope="module")
+def linked_template():
+    return 'tests/data/linked-samwise.yaml'
 
 
 @pytest.fixture(scope="module")

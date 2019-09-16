@@ -52,17 +52,18 @@ a CloudFormation template, MFA support is poorly thought out and there is no way
 (e.g. plugins).
 
 ### SAMWise to the rescue
-SAMWise can be used in one of two ways. You can add a SAMWise block to you SAM template.yaml file and rename it
+SAMWise can be used in one of two ways. You can add a SAMWise block to the `Metadata` section of your SAM template.yaml file and rename it
 to samwise.yaml or leave your template.yaml 100% alone (and valid CFN) and link to it in your samwise.yaml
 
-    SAMWise:
-      Version: '1.0'
-      DeployBucket: <S3 DEPLOY BUCKET>
-      StackName: <YOUR STACK NAME>  # StackName is also provided as a #{Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
-      SamTemplate: template.yaml    # OPTIONAL if you don't want to touch your template.yaml
-      Variables:                    # Provides simple #{Variable} token replacement within your template
-        - RuntimeVar                # Will prompt or require via CLI the value for RuntimeVar
-        - PreparedVar: SomeValue    # Prepared variable 
+    Metadata:
+      SAMWise:
+        Version: '1.0'
+        DeployBucket: <S3 DEPLOY BUCKET>
+        StackName: <YOUR STACK NAME>  # StackName is also provided as a #{Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
+        SamTemplate: template.yaml    # OPTIONAL if you don't want to touch your template.yaml
+        Variables:                    # Provides simple #{Variable} token replacement within your template
+          - RuntimeVar                # Will prompt or require via CLI the value for RuntimeVar
+          - PreparedVar: SomeValue    # Prepared variable 
 
 Then deploy your stack:
 

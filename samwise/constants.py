@@ -10,4 +10,3 @@ SAMWISE_METADATA_KEY = "SAMWise"
 STACK_NAME_KEY = "StackName"
 NAMESPACE_KEY = "Namespace"
 DEPLOYBUCKET_NAME_KEY = "DeployBucket"
-

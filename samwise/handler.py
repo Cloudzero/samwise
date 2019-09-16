@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 from ruamel.yaml import YAML
-from voluptuous import Schema, Any, All, Length, Required, Optional, MultipleInvalid, Invalid, ALLOW_EXTRA
+from voluptuous import Schema, All, Length, Required, Optional, REMOVE_EXTRA
 
 from samwise import constants
 from samwise.exceptions import UnsupportedSAMWiseVersion
@@ -23,7 +23,7 @@ def load(input_file_name, namespace):
         Required('StackName'): str,
         Optional('Variables'): list,
         Optional('SamTemplate'): str
-    })
+    }, extra=REMOVE_EXTRA)
 
     metadata = samwise_obj.get(constants.SAMWISE_METADATA_KEY)
     try:

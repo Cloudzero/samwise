@@ -8,8 +8,17 @@ import samwise.handler as handler
 
 
 @pytest.fixture(scope="module")
-def template_file_path():
+def valid_template():
     return 'tests/data/samwise.yaml'
+
+@pytest.fixture(scope="module")
+def invalid_template():
+    return 'tests/data/invalid-samwise.yaml'
+
+
+@pytest.fixture(scope="module")
+def non_samwise_template():
+    return 'tests/data/non-samwise.yaml'
 
 
 @pytest.fixture(scope="module")
@@ -17,8 +26,8 @@ def namespace():
     return 'little-bunny-foo-foo'
 
 
-def test_happy_path(template_file_path, namespace):
-    obj, metadata = handler.load(template_file_path, namespace)
+def test_happy_path(valid_template, namespace):
+    obj, metadata = handler.load(valid_template, namespace)
     assert obj
     assert metadata['Version'] == '1.0'
     assert metadata['DeployBucket'] == 'sample-deploy-bucket'
@@ -29,3 +38,15 @@ def test_happy_path(template_file_path, namespace):
         {'StackName': 'MyStackName'},
         {'Namespace': namespace}
     ]
+
+
+def test_non_samwise_template(non_samwise_template, namespace):
+    with pytest.raises(Exception) as err:
+        handler.load(non_samwise_template, namespace)
+    assert 'invalid SAMWise Template' in str(err.value)
+
+
+def test_invalid_samwise_template(invalid_template, namespace):
+    with pytest.raises(Exception) as err:
+        handler.load(invalid_template, namespace)
+    assert 'invalid SAMWise Template' in str(err.value)

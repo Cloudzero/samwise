@@ -25,16 +25,14 @@ def load(input_file_name, namespace):
         Optional('SamTemplate'): str
     }, extra=REMOVE_EXTRA)
 
-    metadata = samwise_obj.get(constants.SAMWISE_METADATA_KEY)
     try:
+        metadata = samwise_obj[constants.CFN_METADATA_KEY][constants.SAMWISE_METADATA_KEY]
         samwise_metadata = samwise_schema(metadata)
 
         if samwise_metadata.get('SamTemplate'):
             template_obj = yaml.load(samwise_metadata.get('SamTemplate'))
         else:
             template_obj = samwise_obj
-            # remove SAMWise Metadata from template
-            del template_obj[constants.SAMWISE_METADATA_KEY]
 
         # Add stack name and namespace to available variables
         try:

@@ -3,9 +3,7 @@
 
 Metadata:
   SAMWise:
-    Version: '1.0'
-    DeployBucket: 'sample-deploy-bucket'
-    StackName: 'MyStackName'
+    # Missing metadata
     Variables:
       - PromptForVar
       - PreparedVar: "PreparedValue"

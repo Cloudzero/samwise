@@ -1,14 +1,6 @@
 # Copyright (c) 2019 CloudZero, Inc. All rights reserved.
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-Metadata:
-  SAMWise:
-    Version: '1.0'
-    DeployBucket: 'sample-deploy-bucket'
-    StackName: 'MyStackName'
-    Variables:
-      - PromptForVar
-      - PreparedVar: "PreparedValue"
 
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31

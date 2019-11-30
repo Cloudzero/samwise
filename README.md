@@ -1,3 +1,6 @@
+# UPDATE! (11/30/2019)
+With the release of the new `sam deploy --guided` command you probably don't want to use this project, just go get the [aws-sam-cli](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started.html) and be happy! In fact I'm likely to delete this project before the end of the year. Huge thank you to the AWS SAM team for making this project unencessary!
+
 # SAMWise (Beta)
 > “Come on, Mr. Frodo. I can’t carry it for you… but I can carry you!” -- Samwise Gamgee, Lord of the Rings
 

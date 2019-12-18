@@ -29,8 +29,7 @@ import sys
 from docopt import docopt
 from samwise import __version__, constants
 from samwise.exceptions import UnsupportedSAMWiseVersion
-from samwise.features.generate import parse
-from samwise.handler import display, load, save
+from samwise.features.template import display, load, save, parse
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
 
@@ -74,12 +73,12 @@ def main():
     elif arguments.get('package'):
         aws_creds = get_aws_credentials(aws_profile)
         pre_process_template(metadata, output_location, template_obj)
-        package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
+        sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
 
     elif arguments.get('deploy'):
         aws_creds = get_aws_credentials(aws_profile)
         pre_process_template(metadata, output_location, template_obj)
-        package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
+        sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
         deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, namespace, parameter_overrides)
     else:
         print('Nothing to do')
@@ -87,26 +86,32 @@ def main():
 
 def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, namespace, parameter_overrides=None):
     print(f" - Deploying Stack '{namespace}-{stack_name}' to AWS profile '{aws_profile}'")
-    command = ["aws", "cloudformation", "deploy",
+    # keeping the CFN way around for reference
+    # command = ["aws", "cloudformation", "deploy",
+    #            "--template-file", f"{output_location}/packaged.yaml",
+    #            "--capabilities", "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM",
+    #            "--region", deploy_region,
+    #            "--stack-name", f"{namespace}-{stack_name}"]
+    command = ["sam", "deploy",
                "--template-file", f"{output_location}/packaged.yaml",
                "--capabilities", "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM",
                "--region", deploy_region,
                "--stack-name", f"{namespace}-{stack_name}"]
+
     if parameter_overrides:
         command.append(["--parameter-overrides", parameter_overrides])
-    execute_and_process(command, transform=print, env=aws_creds)
+    execute_and_process(command, env=aws_creds)
 
 
-def package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None):
+def sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None):
     print(" - Building package")
-    # this is the only place where it's actually useful to call the SAM CLI
     command = ["sam", "build", "--use-container", "-m", "requirements.txt",
                "--build-dir", f"{output_location}/build",
                "--base-dir", base_dir,
                "--template", f"{output_location}/template.yaml"]
     if parameter_overrides:
         command.append(["--parameter-overrides", parameter_overrides])
-    execute_and_process(command, transform=print)
+    execute_and_process(command)
 
     print(" - Build successful")
     print(f" - Packaging & saving to s3://{s3_bucket}")

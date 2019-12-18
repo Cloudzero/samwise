@@ -22,10 +22,10 @@ setup(
     package_data={'samwise': ['data/*']},
     include_package_data=True,
     install_requires=[
-        'boto3>=1.9.224',
+        'boto3>=1.10.41',
         'docopt>=0.6.2',
-        'aws-sam-cli>=0.21.0',
-        'awscli>=1.16.234',
+        'aws-sam-cli>=0.38.0',
+        'awscli>=1.16.305',
         'ruamel.yaml>=0.16.5',
         'voluptuous>=0.11.7',
         'docker',

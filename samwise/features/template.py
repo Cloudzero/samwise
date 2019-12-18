@@ -71,7 +71,7 @@ def parse(template_obj, metadata):
             value = input(f" - {var} : ")
             processed_variables[var] = value
         else:
-            processed_variables.update(dict(var))
+            processed_variables.update(var)
 
     output = io.StringIO()
     yaml = YAML()

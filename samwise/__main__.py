@@ -30,7 +30,6 @@ from docopt import docopt
 from samwise import __version__, constants
 from samwise.exceptions import UnsupportedSAMWiseVersion
 from samwise.features.template import display, load, save, parse
-from samwise.features import package
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
 
@@ -72,12 +71,9 @@ def main():
             display(parsed_template_obj)
 
     elif arguments.get('package'):
-        # aws_creds = get_aws_credentials(aws_profile)
-        aws_creds = None
-        parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
-        result = package.create(parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket)
-        print(result)
-        # sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
+        aws_creds = get_aws_credentials(aws_profile)
+        pre_process_template(metadata, output_location, template_obj)
+        sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
 
     elif arguments.get('deploy'):
         aws_creds = get_aws_credentials(aws_profile)
@@ -90,6 +86,7 @@ def main():
 
 def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, namespace, parameter_overrides=None):
     print(f" - Deploying Stack '{namespace}-{stack_name}' to AWS profile '{aws_profile}'")
+    # keeping the CFN way around for reference
     # command = ["aws", "cloudformation", "deploy",
     #            "--template-file", f"{output_location}/packaged.yaml",
     #            "--capabilities", "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM",
@@ -108,7 +105,6 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, n
 
 def sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None):
     print(" - Building package")
-    # this is the only place where it's actually useful to call the SAM CLI
     command = ["sam", "build", "--use-container", "-m", "requirements.txt",
                "--build-dir", f"{output_location}/build",
                "--base-dir", base_dir,

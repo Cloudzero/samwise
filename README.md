@@ -82,6 +82,35 @@ pure CloudFormation.
 > Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯
 - :snake: Python 3.6 and 3.7
 
+## Installation
+
+    $ pip install samwise
+    
+## Usage
+    
+    $ samwise --help
+      SAMWise - Tools for better living with the AWS Serverless Application model and CloudFormation
+
+      Usage:
+            samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
+            samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
+            samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
+            samwise (-h | --help)
+
+        Options:
+            generate                        Process a samwise.yaml template and produce standard CloudFormation.
+            --in <FILE>                     Input file.
+            --out <FOLDER>                  Output folder.
+            --profile <PROFILE>             AWS Profile to use.
+            --namespace <NAMESPACE>         System namespace to distinguish this deployment from others
+            --vars <INPUT>                  SAMwise pre-processed variable substitutions (name=value)
+            --parameter-overrides <INPUT>   AWS CloudFormation parameter-overrides (name=value)
+            --s3-bucket <BUCKET>            Deployment S3 Bucket.
+            --region <REGION>               AWS region to deploy to [default: us-east-1].
+            --print                         Sent output to screen.
+            -y                              Choose yes.
+            -? --help                       Usage help.
+
 ## Roadmap
 Here's what's on the SAMWise roadmap (in priority order):
 1. Smart building and packaging. 

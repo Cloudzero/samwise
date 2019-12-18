@@ -1,10 +1,6 @@
 # Copyright (c) 2019 CloudZero, Inc. All rights reserved.
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-
-import os
-import sys
-from subprocess import PIPE, Popen, STDOUT
 import errno
 import os
 import pty
@@ -12,45 +8,10 @@ import sys
 from select import select
 from subprocess import Popen
 
-# def execute_and_process(command, transform=None, env=None):
-#     os.environ['PYTHONUNBUFFERED'] = "1"
-#
-#     if env:
-#         my_env = {**os.environ.copy(), **env}
-#         proc = Popen(command, stdout=PIPE, stderr=STDOUT, env=my_env)
-#     else:
-#         proc = Popen(command, stdout=PIPE, stderr=STDOUT)
-#
-#     if not transform:
-#         sys.stdout.write("   > ")
-#
-#     # for line in proc.stderr:
-#     #     if callable(transform):
-#     #         transform(f"    > {line.decode('utf-8')}", end='')
-#     #     else:
-#     #         sys.stdout.write('.')
-#
-#     while proc.poll() is None:
-#         # for line in proc.stdout:
-#         if callable(transform):
-#             transform(f"    > {proc.stdout.readline().decode('utf-8')}", end='')
-#         else:
-#             proc.stdout.readline()
-#             sys.stdout.write('.')
-#
-#     if not transform:
-#         print('.')
 
-
-def execute_and_process(command, transform=None, env=None):
+def execute_and_process(command, env=None):
     """Largely found in https://stackoverflow.com/a/31953436"""
     masters, slaves = zip(pty.openpty(), pty.openpty())
-
-    def display(transform, msg):
-        if callable(transform):
-            transform(f"    > {msg}", end='', flush=True)
-        else:
-            sys.stdout.write('.')
 
     if env:
         my_env = {**os.environ.copy(), **env}

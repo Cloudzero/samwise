@@ -103,7 +103,7 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, n
 
     if parameter_overrides:
         command.append(["--parameter-overrides", parameter_overrides])
-    execute_and_process(command, transform=print, env=aws_creds)
+    execute_and_process(command, env=aws_creds)
 
 
 def sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None):
@@ -115,7 +115,7 @@ def sam_package(output_location, base_dir, aws_creds, s3_bucket, parameter_overr
                "--template", f"{output_location}/template.yaml"]
     if parameter_overrides:
         command.append(["--parameter-overrides", parameter_overrides])
-    execute_and_process(command, transform=print)
+    execute_and_process(command)
 
     print(" - Build successful")
     print(f" - Packaging & saving to s3://{s3_bucket}")

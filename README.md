@@ -1,15 +1,11 @@
-# UPDATE! (12/17/2019)
-With the release of the new `sam deploy --guided` I had hoped this project will go away. Alas it's still relevant! It still takes two commands to do a deploy and MFA support is still problematic so SAMWise lives on, for now! 
-
 # SAMWise (Beta)
 > “Come on, Mr. Frodo. I can’t carry it for you… but I can carry you!” -- Samwise Gamgee, Lord of the Rings
 
-SAMWise was designed to carry the [Serverless Application Model](https://aws.amazon.com/serverless/sam/) across the
-finish line and is a tool for packaging and deploying AWS Serverless Application Model applications.
-SAMWise is also an alternative to the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli).
-
 If you :heart: love the AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but
 found the SAM CLI just a little bit wanting, SAMWise was created for you
+
+SAMWise was designed to carry the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) by wrapping the necessary CLI commands to provide a delightful [Serverless Application Model](https://aws.amazon.com/serverless/sam/) packaging and deployment experience.
+
 
 ## Why SAMWise
 SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
@@ -17,7 +13,7 @@ SAMWise was born out of the desire to create the same enjoyable developer experi
 [Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible.
 
 SAMWise's primary goal is to provide that same awesome developer experience without locking you into a third party tool,
-including this one. If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will
+(even including this one!) If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will
 support you there and back again.
 
 ### So, what was missing from the AWS CLI and SAM CLI?
@@ -26,16 +22,14 @@ With `sls` you could go from an idea to your first running Serverless applicatio
 a few lines of code and a single command line deploy.
 
 While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling (at least today)
-falls short of this goal :disappointed:
+falls just short of this goal :disappointed:
 
 #### Example:
 
-The latest version SAM CLI (or `sam`) has made some great improvements reducing the number of commands you need
-to run to only 2, producing nice status output and if you use the `--guided` option, eliminating the need to
-remember the command line options with every run. However it's still not without some challenges. MFA prompts
-and namespacing things are still not as easy as it should be. You can add parameter overrides to your SAM toml
-file, but they probably shouldn't be in there so you are still adding cli options. When you are trying to
-rapidly iterate on a project you might find yourself deploying hundreds of times a day, doing this with `sam`
+The latest version SAM CLI (or `sam`) has made some great improvements, reducing the number of commands you need
+to run to only 2, producing nice status output and if you use the `--guided` option and eliminating the need to
+remember the command line options with every run. However it's still not without some challenges. Juggling AWS profiles, MFA prompts and namespacing things are still not as easy as they should be. When you are trying to
+rapidly iterate on a project you might find yourself deploying hundreds of times a day, doing this with `sam` alone
 is still more painful than it should be.
 
 **Close(!) but not quite there yet:**
@@ -46,13 +40,13 @@ is still more painful than it should be.
         ...
 
 There are a few other items that complicate matters like not being able to do simple variables in
-a CloudFormation template (I'm sorry, but mappings are just plain ugly), MFA support is poorly thought out
-(requires multiple prompts and doesn't cache!) and there is no way to extend the build system (e.g. plugins).
+a CloudFormation template (I'm sorry, but mappings are just plain ugly), Multi-Factor Auth (MFA) support is poorly thought out
+(requires multiple prompts and doesn't cache!) and there is no way to extend or optimize the build system (e.g. plugins).
 
 ### SAMWise to the rescue
 SAMWise can be used in one of two ways. You can add a SAMWise block to the `Metadata` section of your SAM
-template.yaml file and rename it to samwise.yaml or leave your template.yaml 100% alone (and valid CFN)
-and link to it in your samwise.yaml
+`template.yaml` file and rename it to `samwise.yaml` or leave your `template.yaml` 100% alone (and valid CFN)
+and link to it in your `samwise.yaml`
 
     Metadata:
       SAMWise:
@@ -69,8 +63,8 @@ Then deploy your stack:
     $ samwise deploy --profile <aws profile name> --namespace <namespace>
     
 Namespace is just a string variable, but it's a required variable and is slightly analogous to `stage`. You should use
-namespace liberally throughout your template wherever you name things to avoid collisions and allow you to
-deploy multiple instantiations of your stack  
+namespace liberally throughout your template wherever you name things to avoid stack collisions and allow you to
+deploy multiple instantiations of your systems.  
 
 ## Features
 - One line deploy with minimal command line arguments

@@ -5,7 +5,7 @@ from collections import OrderedDict
 
 import pytest
 
-import samwise.handler as handler
+import samwise.features.template as handler
 
 valid_templates = ['tests/data/samwise.yaml', 'tests/data/linked-samwise.yaml']
 

@@ -27,7 +27,9 @@ setup(
         'aws-sam-cli>=0.21.0',
         'awscli>=1.16.234',
         'ruamel.yaml>=0.16.5',
-        'voluptuous>=0.11.7'
+        'voluptuous>=0.11.7',
+        'docker',
+        'nested-lookup'
     ],
     license="MIT",
     zip_safe=False,

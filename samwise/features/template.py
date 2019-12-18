@@ -1,6 +1,8 @@
 # Copyright (c) 2019 CloudZero, Inc. All rights reserved.
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
+import io
 import os.path
+import string
 import sys
 from pathlib import Path
 
@@ -58,3 +60,33 @@ def save(template_yaml_obj, output_file_location):
 def display(template_obj):
     yaml = YAML()
     yaml.dump(template_obj, sys.stdout)
+
+
+def parse(template_obj, metadata):
+    processed_variables = {}
+    variables = metadata.get(constants.VARS_KEY, [])
+
+    for var in variables:
+        if not isinstance(var, dict):
+            value = input(f" - {var} : ")
+            processed_variables[var] = value
+        else:
+            processed_variables.update(dict(var))
+
+    output = io.StringIO()
+    yaml = YAML()
+    yaml.dump(template_obj, output)
+
+    parsed_template = render(output.getvalue(), processed_variables)
+    parsed_template_obj = yaml.load(parsed_template)
+
+    return parsed_template_obj
+
+
+def render(template_string, replacement_map):
+    prepared_template = SamTemplate(template_string)
+    return prepared_template.safe_substitute(**replacement_map)
+
+
+class SamTemplate(string.Template):
+    delimiter = '#'

@@ -7,4 +7,5 @@ moto
 aws-sam-cli
 awscli
 tox
+twine
 -e .

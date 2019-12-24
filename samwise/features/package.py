@@ -7,10 +7,6 @@ import docker
 from nested_lookup import nested_lookup
 from pip._internal.locations import USER_CACHE_DIR
 
-"""
-This is experimental code and a work in progress
-"""
-
 
 def check_docker(image_name):
     client = docker.from_env()
@@ -43,9 +39,6 @@ def build(parsed_template_obj, output_location, base_dir):
     print(f' - Found Python runtime {runtime}')
     client = check_docker(docker_image)
 
-    """
-    docker run --rm -it -v $(pwd)/.samwise/pkg:/app -v $(pwd):/the_project -v ~/Library/Caches/pip:/tmp/pip lambci/lambda:build-python3.7 /bin/sh -c "pip install pip --upgrade && pip install --cache-dir=/tmp/pip -r /the_project/requirements.txt -t /app/ && cp -r /the_project/src/* /app/ && cp -r /the_project/data /app/data"
-    """
     code_path = parsed_template_obj['Globals']['Function']['CodeUri']
     command = f"/bin/sh -c \"pip install pip --upgrade && pip install " \
               f"--cache-dir=/tmp/pip -r /the_project/requirements.txt -t /app/ && " \
@@ -56,10 +49,6 @@ def build(parsed_template_obj, output_location, base_dir):
     volumes = {f"{output_location}/pkg": {"bind": "/app", "mode": "rw"},
                f"{base_dir}": {"bind": "/the_project", "mode": "ro"},
                f"{USER_CACHE_DIR}": {"bind": "/tmp/pip", "mode": "rw"}}
-
-    # print(f"Image   : {docker_image}")
-    # print(f"Command : {command}")
-    # print(f"Vols    : {volumes}")
 
     print(f" - Building Package using Docker {docker_image}")
     shutil.rmtree(f"{output_location}/pkg/")

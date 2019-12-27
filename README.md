@@ -4,49 +4,42 @@
 If you :heart: love the AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but
 found the SAM CLI just a little bit wanting, SAMWise was created for you
 
-SAMWise was designed to carry the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) by wrapping the necessary CLI commands to provide a delightful [Serverless Application Model](https://aws.amazon.com/serverless/sam/) packaging and deployment experience.
-
+SAMWise was designed to carry the [Serverless Application Model](https://aws.amazon.com/serverless/sam/) across the
+finish line and is a tool for packaging and deploying AWS Serverless Application Model applications.
+SAMWise is an alternative to the [AWS SAM CLI](https://github.com/awslabs/aws-sam-cli) (which it uses under the hood).
 
 ## Why SAMWise
-SAMWise was born out of the desire to create the same enjoyable developer experience provided by the
-[Serverless Framework](https://www.serverless.com) but while using AWS's 
+SAMWise was born out of the desire to create an awesome AWS Serverless developer experience while using AWS's 
 [Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible.
 
-SAMWise's primary goal is to provide that same awesome developer experience without locking you into a third party tool,
-(even including this one!) If you ever want to switch back to pure SAM/CloudFormation, SAMWise doesn't judge and will
-support you there and back again.
+SAMWise's does not lock you into a third party tool, including itself! If you ever want to switch back to pure 
+SAM/CloudFormation, SAMWise doesn't judge and will support you there and back again.
 
-### So, what was missing from the AWS CLI and SAM CLI?
-One of the greatest things about the Serverless Framework CLI (or `sls`) is its ease of use and flexibility. 
-With `sls` you could go from an idea to your first running Serverless application with just a small amount of yaml, 
-a few lines of code and a single command line deploy.
+### So, what was missing from the AWS and SAM CLI?
+Three things: Simplicity, speed and proper MFA support
 
-While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling (at least today)
-falls just short of this goal :disappointed:
+One of the greatest things about Serverless is the speed at which you can go from an idea to your first running 
+Serverless application with just a small amount of yaml, a few lines of code and a single command line deploy.
+Unfortunately while the "hello world" examples promise and even demonstrate this, once you start to build something
+significant things start to fall apart. 
 
-#### Example:
+Once you start to need to import other 3rd party libraries, you go from one command to run to two and a few commandline
+options to remember. If you are using MFA, entering in your MFA code (twice!) per deploy becomes tedious and then there
+is the performance of building your packages which is dreadful. Things start to slow down and bloat considerably once
+you start to add more than one function.
 
-The latest version SAM CLI (or `sam`) has made some great improvements, reducing the number of commands you need
-to run to only 2, producing nice status output and if you use the `--guided` option and eliminating the need to
-remember the command line options with every run. However it's still not without some challenges. Juggling AWS profiles, MFA prompts and namespacing things are still not as easy as they should be. When you are trying to
-rapidly iterate on a project you might find yourself deploying hundreds of times a day, doing this with `sam` alone
-is still more painful than it should be.
+While all the building blocks are there with the AWS CLI, SAM CLI and API's, the native AWS tooling (at least today) 
+falls short of these goal :disappointed:
 
-**Close(!) but not quite there yet:**
-
-    $ sam build --use-container
-        ...
-    $ sam deploy --capabilities CAPABILITY_IAM --region us-east-1 --stack-name my-cool-stack --parameter-overrides Namespace=dev
-        ...
-
-There are a few other items that complicate matters like not being able to do simple variables in
-a CloudFormation template (I'm sorry, but mappings are just plain ugly), Multi-Factor Auth (MFA) support is poorly thought out
-(requires multiple prompts and doesn't cache!) and there is no way to extend or optimize the build system (e.g. plugins).
+#### Why not just use the Serverless Framework?
+If you are currently a user of the Serverless Framework you have likely noticed that you don't experience any of these
+challenges. What if you wanted to live as an AWS native and use native CloudFormation and SAM with a clear
+and easy path to backwards compatibility if you ever wanted to revert back to the SAM cli?
 
 ### SAMWise to the rescue
 SAMWise can be used in one of two ways. You can add a SAMWise block to the `Metadata` section of your SAM
-`template.yaml` file and rename it to `samwise.yaml` or leave your `template.yaml` 100% alone (and valid CFN)
-and link to it in your `samwise.yaml`
+template.yaml file and rename it to samwise.yaml or leave your template.yaml 100% alone (and valid CFN)
+and link to it in your samwise.yaml
 
     Metadata:
       SAMWise:
@@ -63,20 +56,20 @@ Then deploy your stack:
     $ samwise deploy --profile <aws profile name> --namespace <namespace>
     
 Namespace is just a string variable, but it's a required variable and is slightly analogous to `stage`. You should use
-namespace liberally throughout your template wherever you name things to avoid stack collisions and allow you to
-deploy multiple instantiations of your systems.  
+namespace liberally throughout your template wherever you name things to avoid collisions and allow you to
+deploy multiple instantiations of your stack  
 
 ## Features
 - One line deploy with minimal command line arguments
-- Simple namespacing and template variable substitution
+- Simple namespaces and template variable substitution
 - First class support for MFA (with caching!)
+- Super fast and efficient packaging!
 
 ### A note on SAMWise's variable substitution feature
-This feature/idea isn't fully baked just yet. It's purpose isn't to add a feature that CloudFormation doesn't have
+This feature/idea is a work in progress. It's purpose isn't to add a feature that CloudFormation doesn't have
 (which it does, mappings), but to allow for a more pleasant, easier on the eyes syntax for setting up mappings.
-For the moment it is simple token substitution, in time however this will evolve to translate variables 
-into native CloudFormation mappings before generating the final templates so it will be very easy to return to
-pure CloudFormation.    
+For the moment it is simple token substitution, and that might actually be good enough. In time however this might 
+evolve, how, well that depends on you and i'd love to hear your feedback.    
 
 ### Language Support:
 > Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯
@@ -89,32 +82,32 @@ pure CloudFormation.
 ## Usage
     
     $ samwise --help
-      SAMWise - Tools for better living with the AWS Serverless Application model and CloudFormation
-
-      Usage:
-            samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
-            samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
-            samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
-            samwise (-h | --help)
-
-        Options:
-            generate                        Process a samwise.yaml template and produce standard CloudFormation.
-            --in <FILE>                     Input file.
-            --out <FOLDER>                  Output folder.
-            --profile <PROFILE>             AWS Profile to use.
-            --namespace <NAMESPACE>         System namespace to distinguish this deployment from others
-            --vars <INPUT>                  SAMwise pre-processed variable substitutions (name=value)
-            --parameter-overrides <INPUT>   AWS CloudFormation parameter-overrides (name=value)
-            --s3-bucket <BUCKET>            Deployment S3 Bucket.
-            --region <REGION>               AWS region to deploy to [default: us-east-1].
-            --print                         Sent output to screen.
-            -y                              Choose yes.
-            -? --help                       Usage help.
+    SAMWise v0.0.4 - Tools for better living with the AWS Serverless Application model and CloudFormation
+    
+    Usage:
+        samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
+        samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
+        samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
+        samwise (-h | --help)
+    
+    Options:
+        generate                        Process a samwise.yaml template and produce a CloudFormation template ready for packaging and deployment
+        package                         Generate and Package your code (including sending to S3)
+        deploy                          Generate, Package and Deploy your code
+        --in <FILE>                     Input file.
+        --out <FOLDER>                  Output folder.
+        --profile <PROFILE>             AWS Profile to use.
+        --namespace <NAMESPACE>         System namespace to distinguish this deployment from others
+        --vars <INPUT>                  SAMwise pre-processed variable substitutions (name=value)
+        --parameter-overrides <INPUT>   AWS CloudFormation parameter-overrides (name=value)
+        --s3-bucket <BUCKET>            Deployment S3 Bucket.
+        --region <REGION>               AWS region to deploy to [default: us-east-1].
+        --print                         Sent output to screen.
+        -y                              Choose yes.
+        -? --help                       Usage help.
 
 ## Roadmap
 Here's what's on the SAMWise roadmap (in priority order):
-1. Smart building and packaging. 
-    * Currently we straight up use `sam build -u` which is fine, but it's slow. For starters, if I don't touch the package requirements.txt, don't rebuild all the packages! There is a lot of room for improvement here.
 1. Improve variable substitution and support the auto-generation of proper CFN mapping syntax   
 1. Support more Languages/runtimes
     - It would be nice to support more than just Python. This is where the SAM CLI actually has done an

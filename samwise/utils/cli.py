@@ -9,8 +9,27 @@ from select import select
 from subprocess import Popen
 
 
-def execute_and_process(command, env=None):
-    """Largely found in https://stackoverflow.com/a/31953436"""
+def execute_and_process(command, env=None, status_only=False):
+    """
+    Run a shell command in a subprocess while streaming the results
+    Based on https://stackoverflow.com/a/31953436
+
+    The extreme complexity of this function is due to the desire to
+        1. Stream the results in real time (not so hard)
+        2. Support terminal colors (apparently hard)
+        3. Use existing term width (also apparently hard)
+
+    Those three requirements necessitated what you see here, if you find a simpler alternative
+    please let me know, because I think this is ridiculous
+
+    Args:
+        command (list): Command to run
+        env (dict): Environment vars to inject into the shell
+        status_only (bool): Dont display the output, but do indicate something is happening
+
+    Returns:
+
+    """
     masters, slaves = zip(pty.openpty(), pty.openpty())
 
     if env:
@@ -27,7 +46,7 @@ def execute_and_process(command, env=None):
         while readable:
             for fd in select(readable, [], [])[0]:
                 try:
-                    data = os.read(fd, 15)  # read available
+                    data = os.read(fd, 5)  # read available, 5 bytes at a time
                 except OSError as e:
                     if e.errno != errno.EIO:
                         raise  # XXX cleanup
@@ -36,11 +55,16 @@ def execute_and_process(command, env=None):
                     if not data:  # EOF
                         del readable[fd]
                     else:
-                        if fd == masters[0]:  # We caught stdout
-                            print(data.decode('utf-8'), end='', flush=True)
-                        else:  # We caught stderr
-                            print(data.decode('utf-8'), end='', flush=True)
+                        if status_only:
+                            print('.', end='', flush=True)
+                        else:
+                            if fd == masters[0]:  # We caught stdout
+                                print(data.decode('utf-8'), end='', flush=True)
+                            else:  # We caught stderr
+                                print(data.decode('utf-8'), end='', flush=True)
                         readable[fd].flush()
     for fd in masters:
         os.close(fd)
+    if status_only:
+        print('done')
     return p.returncode

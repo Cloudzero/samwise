@@ -5,6 +5,7 @@ import os.path
 import string
 import sys
 from pathlib import Path
+from pprint import pprint
 
 from ruamel.yaml import YAML
 
@@ -80,6 +81,13 @@ def parse(template_obj, metadata):
     parsed_template = render(output.getvalue(), processed_variables)
     parsed_template_obj = yaml.load(parsed_template)
 
+    code_path = parsed_template_obj['Globals']['Function']['CodeUri']
+    # print(code_path)
+    for k, v in parsed_template_obj['Resources'].items():
+        if v.get('Type') == 'AWS::Serverless::Function':
+            parsed_template_obj['Resources'][k]['Properties']['CodeUri'] = 'pkg.zip'
+
+    # pprint(parsed_template_obj)
     return parsed_template_obj
 
 

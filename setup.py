@@ -29,7 +29,8 @@ setup(
         'ruamel.yaml>=0.16.5',
         'voluptuous>=0.11.7',
         'docker',
-        'nested-lookup'
+        'nested-lookup',
+        'pip>=19.3.1'
     ],
     license="MIT",
     zip_safe=False,

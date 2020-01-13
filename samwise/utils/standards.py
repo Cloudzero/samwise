@@ -44,8 +44,8 @@ def utc_iso_from_anything(input_data):
     >>> utc_iso_from_anything('2019-10-17T22:35+00:00')
     '2019-10-17T22:35:00+00:00'
 
-    >>> utc_iso_from_anything('January 1, 2047 at 8:21:00AM')
-    '2047-01-01T13:21:00+00:00'
+    >>> utc_iso_from_anything('January 1, 2047 at 8:21:00AM UTC')
+    '2047-01-01T08:21:00+00:00'
 
     """
     if input_data is None:

@@ -1,6 +1,8 @@
 # SAMWise (Beta)
 > “Come on, Mr. Frodo. I can’t carry it for you… but I can carry you!” -- Samwise Gamgee, Lord of the Rings
 
+![Build Status](https://cloudzero.semaphoreci.com/badges/samwise.svg)
+
 If you :heart: love the AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but
 you found the SAM or CloudFormation packaging and deployment process just a little bit wanting, SAMWise was created
 for you.

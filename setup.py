@@ -1,4 +1,4 @@
-# Copyright (c) CloudZero, Inc. All rights reserved.
+# Copyright (c) 2019 CloudZero, Inc. All rights reserved.
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 from samwise import __version__
@@ -30,7 +30,8 @@ setup(
         'voluptuous>=0.11.7',
         'docker',
         'nested-lookup',
-        'pip>=19.3.1'
+        'pip>=19.3.1',
+        'colorama'
     ],
     license="MIT",
     zip_safe=False,

@@ -10,3 +10,8 @@ class TemplateNotFound(Exception):
 class UnsupportedSAMWiseVersion(Exception):
     """The SAMWise version that was read is unsupported"""
     pass
+
+
+class InlineIncludeNotFound(Exception):
+    """Thrown if we could not find the inline include file"""
+    pass

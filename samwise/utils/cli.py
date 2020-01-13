@@ -46,7 +46,7 @@ def execute_and_process(command, env=None, status_only=False):
         while readable:
             for fd in select(readable, [], [])[0]:
                 try:
-                    data = os.read(fd, 5)  # read available, 5 bytes at a time
+                    data = os.read(fd, 25)  # read available, 25 bytes at a time
                 except OSError as e:
                     if e.errno != errno.EIO:
                         raise  # XXX cleanup

@@ -2,10 +2,12 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 from collections import OrderedDict
+from pathlib import Path
 
 import pytest
 
 import samwise.features.template as handler
+from samwise.utils.tools import yaml_dumps
 
 valid_templates = ['tests/data/samwise.yaml', 'tests/data/linked-samwise.yaml']
 
@@ -31,6 +33,16 @@ def linked_template():
 
 
 @pytest.fixture(scope="module")
+def include_template():
+    return 'tests/data/include-samwise.yaml'
+
+
+@pytest.fixture(scope="module")
+def include_data():
+    return Path('tests/data/MyStateMachine.json').read_text()
+
+
+@pytest.fixture(scope="module")
 def namespace():
     return 'little-bunny-foo-foo'
 
@@ -47,6 +59,14 @@ def test_happy_path(valid_template, namespace):
         {'StackName': 'MyStackName'},
         {'Namespace': namespace}
     ]
+
+
+def test_include_samwise_template(include_template, include_data, namespace):
+    obj, metadata = handler.load(include_template, namespace)
+    assert obj
+    var_count, rendered_obj = handler.parse(obj, metadata)
+    yaml_string = yaml_dumps(rendered_obj['Resources']['MyStateMachine']['Properties']['DefinitionString'])
+    assert yaml_string == f"!Sub |\n{include_data}\n"
 
 
 def test_non_samwise_template(non_samwise_template, namespace):

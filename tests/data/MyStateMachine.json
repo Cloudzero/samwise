@@ -1,0 +1,23 @@
+{
+  "Comment": "My Amazing State Machine",
+  "StartAt": "LoadConfig",
+  "States": {
+    "LoadConfig": {
+      "Type": "Task",
+      "Resource": "${LoadConfig.Arn}",
+      "TimeoutSeconds": 30,
+      "ResultPath": "$.org_config",
+      "Next": "SomethingImportant"
+    },
+    "SomethingImportant": {
+      "Type": "Task",
+      "Resource": "${MyFunction.Arn}",
+      "TimeoutSeconds": 300,
+      "ResultPath": "$.MyFunctionResults",
+      "Next": "Done"
+    },
+    "Done": {
+      "Type": "Succeed"
+    }
+  }
+}

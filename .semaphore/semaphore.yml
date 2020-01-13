@@ -10,9 +10,14 @@ blocks:
       jobs:
         - name: pytest
           commands:
-            - sem-version python 3.7
+            - sem-version python $PYTHON_VERSIONS
             - checkout
             - python -m pip install --upgrade pip
             - pip install -r requirements-dev.txt
             - flake8
             - pytest
+          matrix:
+            - env_var: PYTHON_VERSIONS
+              values:
+                - '3.7'
+                - '3.8'

@@ -1,7 +1,7 @@
 # Copyright (c) 2019 CloudZero, Inc. All rights reserved.
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-"""SAMWise v#{VERSION} - Tools for better living with the AWS Serverless Application model and CloudFormation
+"""SAMWise v${VERSION} - Tools for better living with the AWS Serverless Application model and CloudFormation
 
 Usage:
     samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
@@ -25,27 +25,32 @@ Options:
     -y                              Choose yes.
     -? --help                       Usage help.
 """
-import hashlib
 import json
 import os
+import string
 import sys
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
+from colorama import Fore
 from docopt import docopt
+
 from samwise import __version__, constants
-from samwise.exceptions import UnsupportedSAMWiseVersion
+from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
 from samwise.features.package import build
-from samwise.features.template import display, load, save, parse, render
+from samwise.features.template import load, save, parse
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
 from samwise.utils.filesystem import hash_directory
+from samwise.utils.tools import hash_string, yaml_print, yaml_dumps
 from samwise.utils.zip import zipdir
 
 
 def main():
-    doc_with_version = render(__doc__, {"VERSION": __version__})
+    doc_string = string.Template(__doc__)
+    doc_with_version = doc_string.safe_substitute(VERSION=__version__)
     arguments = docopt(doc_with_version)
+
     aws_profile = arguments.get('--profile')
     deploy_region = arguments.get('--region')
     namespace = arguments.get('--namespace')
@@ -78,7 +83,7 @@ def main():
         stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
         if arguments.get('--print'):
             print("-" * 100)
-            display(parsed_template_obj)
+            yaml_print(parsed_template_obj)
 
     elif arguments.get('package'):
         aws_creds = get_aws_credentials(aws_profile)
@@ -95,7 +100,7 @@ def main():
 
 
 def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, parameter_overrides=None):
-    print(f" - Deploying Stack '{stack_name}' to AWS profile '{aws_profile}'")
+    print(f"{Fore.LIGHTCYAN_EX} - Deploying Stack '{stack_name}' using AWS profile '{aws_profile}'{Fore.RESET}")
     # keeping the CFN way around for reference.
     # The new sam deploy way is great!
 
@@ -117,12 +122,11 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, p
 
 
 def package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None):
-    print(" - Building package")
-    code_path = parsed_template_obj['Globals']['Function']['CodeUri']
+    print(f"{Fore.LIGHTCYAN_EX} - Building Package{Fore.RESET}")
 
-    changes_detected = check_for_code_changes(base_dir, code_path)
+    changes_detected = check_for_code_changes(base_dir, parsed_template_obj['Globals'])
     if changes_detected:
-        print("   - Requirements and/or project code changed, building packages")
+        print(f"{Fore.YELLOW}   - Changed detected, rebuilding package{Fore.RESET}")
         # Keeping this here for reference.
         # The sam build way works but is _very_ inefficient and creates packages with
         # potential namespace collisions :-(
@@ -135,16 +139,16 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
         #     command += ["--parameter-overrides", parameter_overrides.strip()]
         # execute_and_process(command)
         build(parsed_template_obj, output_location, base_dir)
-        print(" - Build successful!")
+        print(f"{Fore.GREEN}   - Build successful!{Fore.RESET}")
     else:
-        print("   - Requirements and project code unchanged, skipping build")
+        print(f"{Fore.GREEN}   - No changes detected, skipping build{Fore.RESET}")
 
-    print(f" - Packaging & saving to s3://{s3_bucket}/{stack_name}", end='')
+    print(f"   - Saving to s3://{s3_bucket}/{stack_name}", end='')
     try:
-        os.remove(f"{output_location}/pkg.zip")
+        os.remove(f"{output_location}/samwise-pkg.zip")
     except OSError:
         pass
-    with ZipFile(f"{output_location}/pkg.zip", 'w',
+    with ZipFile(f"{output_location}/samwise-pkg.zip", 'w',
                  compression=ZIP_DEFLATED,
                  compresslevel=9) as myzip:
         zipdir(f"{output_location}/pkg", myzip)
@@ -156,10 +160,20 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
                "--output-template-file", f"{output_location}/packaged.yaml"]
 
     execute_and_process(command, env=aws_creds, status_only=True)
-    print(" - Packaging successful")
+    print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
 
 
-def check_for_code_changes(base_dir, code_path):
+def check_for_code_changes(base_dir, template_globals):
+    """
+
+    Args:
+        base_dir:
+        template_globals:
+
+    Returns:
+        Bool: true/false if code has changes
+    """
+    code_path = template_globals['Function']['CodeUri']
     config_file = Path(constants.SAMWISE_CONFIGURATION_FILE).expanduser()
     if config_file.exists():
         config = json.load(config_file.open())
@@ -167,21 +181,34 @@ def check_for_code_changes(base_dir, code_path):
         config = {}
     requirements_file = os.path.join(base_dir, "requirements.txt")
     req_modified_time = os.path.getmtime(requirements_file)
+
     abs_code_path = os.path.abspath(os.path.join(base_dir, code_path))
     src_hash = hash_directory(abs_code_path)
+
+    globals_hash = hash_string(yaml_dumps(template_globals))
+
     changes = bool(req_modified_time > config.get(requirements_file, 0) or
-                   (src_hash != config.get(abs_code_path)))
+                   (src_hash != config.get(abs_code_path)) or
+                   globals_hash != config.get(f"{code_path}|globals_hash"))
+
     config[requirements_file] = req_modified_time
     config[abs_code_path] = src_hash
+    config[f"{code_path}|globals_hash"] = globals_hash
     json.dump(config, config_file.open('w'))
     return changes
 
 
 def pre_process_template(metadata, output_location, template_obj):
-    print(f" - Pre-processing CloudFormation Template")
-    parsed_template_obj = parse(template_obj, metadata)
-    stack_name = parsed_template_obj['Metadata']['SAMWise']['StackName']
-    print(f" - Found stack {stack_name}")
+    print(f"{Fore.LIGHTCYAN_EX} - Reading SAMWise template{Fore.RESET}")
+    try:
+        var_count, parsed_template_obj = parse(template_obj, metadata)
+        stack_name = parsed_template_obj['Metadata']['SAMWise']['StackName']
+    except InlineIncludeNotFound as error:
+        print(f"{Fore.RED}   - ERROR: {error}{Fore.RESET}")
+        sys.exit(1)
+
+    print(f"   - Found stack {stack_name} and processed {var_count} SAMWise variables")
+    print(f"   - CloudFormation Template fully rendered to {os.path.abspath(output_location)}/template.yaml")
     save(parsed_template_obj, output_location)
     return stack_name, parsed_template_obj
 

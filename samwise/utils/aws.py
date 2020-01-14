@@ -48,7 +48,7 @@ def get_aws_credentials(profile_name, duration=None):
     In the real real world, people also use MFA. Why? Well for starters AWS TELLS YOU it's a best practice, and you
     know what, it really is. Why however don't a lot of people use MFA? Well it's because the people building tools
     never treat it seriously and do no testing with MFA. Every AWS tools developer should work with MFA
-    set to ON for everything they do, trust me, once you do this, trust me, the MFA experience get fixed real fast.
+    set to ON for everything they do, trust me, once you do this, the MFA experience will get fixed real fast.
 
     So, with all that in mind, what this approach to getting AWS credentials enables is:
     1. Get the MFA process out of the way upfront as the _first_ thing the app prompts you for so you don't have to sit
@@ -57,11 +57,11 @@ def get_aws_credentials(profile_name, duration=None):
        every time you run the tool
     3. Support shelling out to AWS aware tools (like the SAM CLI)
     4. Also support using the cached credentials when creating Botocore/Boto3 sessions (you have to pass in the keys vs.
-       using a profile_name you pass in but that's a small price to pay for awesomeness)
+       using a profile_name but that's a small price to pay for awesomeness)
 
     Args:
-        profile_name:
-        duration:
+        profile_name (str): A AWS profile name, as defined in the users .aws/aws_credentials file
+        duration (int): Session duration in seconds, the duration configured in the role policy takes precedence
 
     Returns:
         (dict):

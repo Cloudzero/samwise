@@ -11,7 +11,7 @@ from pip._internal.locations import USER_CACHE_DIR
 def check_docker(image_name):
     client = docker.from_env()
     if not client.images.list(name=image_name):
-        print(f'  - Pre-fetching {image_name}')
+        print(f'     - Pre-fetching {image_name}')
         client.images.pull(image_name)
 
     return client
@@ -36,7 +36,7 @@ def get_python_runtime_image(parsed_template_obj):
 
 def build(parsed_template_obj, output_location, base_dir):
     runtime, docker_image = get_python_runtime_image(parsed_template_obj)
-    print(f' - Found Python runtime {runtime}')
+    print(f'   - Found Python runtime {runtime}')
     client = check_docker(docker_image)
 
     code_path = parsed_template_obj['Globals']['Function']['CodeUri']
@@ -50,7 +50,7 @@ def build(parsed_template_obj, output_location, base_dir):
                f"{base_dir}": {"bind": "/the_project", "mode": "ro"},
                f"{USER_CACHE_DIR}": {"bind": "/tmp/pip", "mode": "rw"}}
 
-    print(f" - Building Package using Docker {docker_image}")
+    print(f"   - Building Package using Docker {docker_image}")
     shutil.rmtree(f"{output_location}/pkg/")
     os.mkdir(f"{output_location}/pkg/")
     container = client.containers.run(image=docker_image,
@@ -59,6 +59,6 @@ def build(parsed_template_obj, output_location, base_dir):
                                       remove=True,
                                       detach=True)
     for line in container.logs(stream=True):
-        print(f"   > {line.decode('utf-8')}", end='', flush=True)
+        print(f"     > {line.decode('utf-8')}", end='', flush=True)
 
     return True

@@ -1,4 +1,4 @@
-# Copyright (c) CloudZero, Inc. All rights reserved.
+# Copyright (c) 2019 CloudZero, Inc. All rights reserved.
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 from samwise import __version__
@@ -28,9 +28,10 @@ setup(
         'awscli>=1.16.305',
         'ruamel.yaml>=0.16.5',
         'voluptuous>=0.11.7',
-        'docker',
-        'nested-lookup',
-        'pip>=19.3.1'
+        'docker>=4.1.0',
+        'nested-lookup>=0.2.19',
+        'pip>=19.3.1',
+        'colorama>=0.4.1'
     ],
     license="MIT",
     zip_safe=False,

@@ -4,6 +4,7 @@
 SAMWISE_CONFIGURATION_FILE = "~/.samwise"
 DEFAULT_TEMPLATE_FILE_PATH = ".samwise"
 DEFAULT_TEMPLATE_FILE_NAME = "samwise.yaml"
+FILE_INCLUDE_REGEX = r"(.*)#{include ([a-zA-Z0-9./]+)}"
 
 # Metadata
 CFN_METADATA_KEY = 'Metadata'

@@ -16,11 +16,11 @@ and deploying AWS Serverless Application Model applications. SAMWise is meant as
 SAMWise was born out of the desire to create an awesome AWS Serverless developer experience while using AWS's 
 [Serverless Application Model](https://aws.amazon.com/serverless/sam/) and native tooling as much as possible.
 
-SAMWise's does not lock you into a third party tool, including itself! If you ever want to switch back to pure 
+SAMWise does not lock you into a third party tool, including itself! If you ever want to switch back to pure 
 SAM/CloudFormation, SAMWise doesn't judge, and will support you there and back again.
 
 ### So, what was missing from the AWS and SAM CLI?
-Three things: Simplicity, speed, the ability to compose templates from mixed sources and proper MFA support
+Lots of things! Simplicity, speed, the ability to compose templates from mixed sources and proper MFA support
 
 One of the greatest things about Serverless is the speed at which you can go from an idea in your head to your first
 running Serverless application with just a small amount of code and a single command line deploy.

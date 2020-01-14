@@ -160,7 +160,7 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
                "--output-template-file", f"{output_location}/packaged.yaml"]
 
     execute_and_process(command, env=aws_creds, status_only=True)
-    print(f"{Fore.GREEN}   - Packaging successful{Fore.RESET}")
+    print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
 
 
 def check_for_code_changes(base_dir, template_globals):
@@ -199,7 +199,7 @@ def check_for_code_changes(base_dir, template_globals):
 
 
 def pre_process_template(metadata, output_location, template_obj):
-    print(f"{Fore.LIGHTCYAN_EX} - Reading SAMWise template")
+    print(f"{Fore.LIGHTCYAN_EX} - Reading SAMWise template{Fore.RESET}")
     try:
         var_count, parsed_template_obj = parse(template_obj, metadata)
         stack_name = parsed_template_obj['Metadata']['SAMWise']['StackName']

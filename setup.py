@@ -28,10 +28,10 @@ setup(
         'awscli>=1.16.305',
         'ruamel.yaml>=0.16.5',
         'voluptuous>=0.11.7',
-        'docker',
-        'nested-lookup',
+        'docker>=4.1.0',
+        'nested-lookup>=0.2.19',
         'pip>=19.3.1',
-        'colorama'
+        'colorama>=0.4.1'
     ],
     license="MIT",
     zip_safe=False,

@@ -4,7 +4,7 @@
 """SAMWise v${VERSION} - Tools for better living with the AWS Serverless Application model and CloudFormation
 
 Usage:
-    samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
+    samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print] [--profile <PROFILE>]
     samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
     samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
     samwise (-h | --help)
@@ -36,6 +36,7 @@ from colorama import Fore
 from docopt import docopt
 
 from samwise import __version__, constants
+from samwise.constants import ACCOUNT_ID_KEY
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
 from samwise.features.package import build
 from samwise.features.template import load, save, parse
@@ -80,21 +81,26 @@ def main():
     output_location = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
     if arguments.get('generate'):
         print(f"Generating CloudFormation Template")
-        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
+        if aws_profile:
+            aws_creds = get_aws_credentials(aws_profile)
+            aws_account_id = aws_creds['AWS_ACCOUNT_ID']
+        else:
+            aws_account_id = None
+
+        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj,
+                                                               aws_account_id)
         if arguments.get('--print'):
             print("-" * 100)
             yaml_print(parsed_template_obj)
 
-    elif arguments.get('package'):
+    elif arguments.get('package') or arguments.get('deploy'):
         aws_creds = get_aws_credentials(aws_profile)
-        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
+        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj,
+                                                               aws_creds[ACCOUNT_ID_KEY])
         package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
 
-    elif arguments.get('deploy'):
-        aws_creds = get_aws_credentials(aws_profile)
-        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
-        package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
-        deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, parameter_overrides)
+        if arguments.get('deploy'):
+            deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, parameter_overrides)
     else:
         print('Nothing to do')
 
@@ -198,10 +204,11 @@ def check_for_code_changes(base_dir, template_globals):
     return changes
 
 
-def pre_process_template(metadata, output_location, template_obj):
+def pre_process_template(metadata, output_location, template_obj, aws_account_id=None):
     print(f"{Fore.LIGHTCYAN_EX} - Reading SAMWise template{Fore.RESET}")
+
     try:
-        var_count, parsed_template_obj = parse(template_obj, metadata)
+        var_count, parsed_template_obj = parse(template_obj, metadata, aws_account_id)
         stack_name = parsed_template_obj['Metadata']['SAMWise']['StackName']
     except InlineIncludeNotFound as error:
         print(f"{Fore.RED}   - ERROR: {error}{Fore.RESET}")

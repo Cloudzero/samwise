@@ -38,6 +38,11 @@ def include_template():
 
 
 @pytest.fixture(scope="module")
+def accountid_template():
+    return 'tests/data/accountid-samwise.yaml'
+
+
+@pytest.fixture(scope="module")
 def include_data():
     return Path('tests/data/MyStateMachine.json').read_text()
 
@@ -54,11 +59,19 @@ def test_happy_path(valid_template, namespace):
     assert metadata['DeployBucket'] == 'sample-deploy-bucket'
     assert metadata['StackName'] == 'MyStackName'
     assert metadata['Variables'] == [
-        'PromptForVar',
         OrderedDict({'PreparedVar': 'PreparedValue'}),
-        {'StackName': 'MyStackName'},
-        {'Namespace': namespace}
+        {'SAMWise::StackName': 'MyStackName'},
+        {'SAMWise::Namespace': namespace}
     ]
+    var_count, rendered_obj = handler.parse(obj, metadata)
+    assert rendered_obj['Parameters']['Namespace']['Default'] == namespace
+
+
+def test_account_id(accountid_template, namespace):
+    obj, metadata = handler.load(accountid_template, namespace)
+    assert obj
+    var_count, rendered_obj = handler.parse(obj, metadata, '123456789012')
+    assert rendered_obj['Metadata']['SAMWise']['DeployBucket'] == 'sample-deploy-bucket-123456789012'
 
 
 def test_include_samwise_template(include_template, include_data, namespace):

@@ -6,7 +6,6 @@ Metadata:
     Version: '1.0'
     DeployBucket: 'sample-deploy-bucket'
     StackName: 'MyStackName'
-    SamTemplate: 'non-samwise.yaml'
+    Template: 'non-samwise.yaml'
     Variables:
-      - PromptForVar
       - PreparedVar: "PreparedValue"

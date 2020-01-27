@@ -10,7 +10,7 @@ Parameters:
   Namespace:
     Type: String
     Description: Unique (within a given AWS account) System Name
-    Default: '#{Namespace}'
+    Default: '#{SAMWise::Namespace}'
 
 Globals:
   Function:
@@ -19,8 +19,8 @@ Globals:
     Environment:
       Variables:
         LOG_LEVEL: INFO
-        NAMESPACE: '#{Namespace}'
-        FEATURE: '#{StackName}'
+        NAMESPACE: '#{SAMWise::Namespace}'
+        FEATURE: '#{SAMWise::StackName}'
         CONFIG: !Sub 's3://${ConfigBucket}/configuration.json'
 
 
@@ -28,14 +28,14 @@ Resources:
   PublicApi:
     Type: AWS::Serverless::Api
     Properties:
-      StageName: '#{Namespace}'
+      StageName: '#{SAMWise::Namespace}'
       TracingEnabled: true
 
   # Functions
   SampleFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: '#{Namespace}-#{StackName}-#{PreparedVar}-#{PromptForVar}-sample'
+      FunctionName: '#{SAMWise::Namespace}-#{SAMWise::StackName}-#{PreparedVar}-sample'
       Handler: functions/setup/handler.main
       MemorySize: 128
       Policies:
@@ -46,10 +46,10 @@ Resources:
   ConfigBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '#{Namespace}-#{StackName}-${AWS::AccountId}'
+      BucketName: !Sub '#{SAMWise::Namespace}-#{SAMWise::StackName}-${AWS::AccountId}'
 
   # Topics
   SampleEvents:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: '#{Namespace}-#{StackName}-events'
+      TopicName: '#{SAMWise::Namespace}-#{SAMWise::StackName}-events'

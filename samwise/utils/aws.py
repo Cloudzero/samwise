@@ -83,14 +83,18 @@ def get_aws_credentials(profile_name, duration=None):
         mfa_code = input("Enter MFA code for {}: ".format(mfa_serial))
         response = sts.get_session_token(DurationSeconds=duration, SerialNumber=mfa_serial, TokenCode=mfa_code)
         credentials = response['Credentials']
+        identity = sts.get_caller_identity()
         env_vars = {'AWS_ACCESS_KEY_ID': credentials['AccessKeyId'],
                     'AWS_SECRET_ACCESS_KEY': credentials['SecretAccessKey'],
-                    'AWS_SESSION_TOKEN': credentials['SessionToken']}
+                    'AWS_SESSION_TOKEN': credentials['SessionToken'],
+                    'AWS_ACCOUNT_ID': identity.get('Account')}
         print('.')
     else:
         credentials = session.get_credentials()
-
+        sts = session.create_client('sts')
+        identity = sts.get_caller_identity()
         env_vars = {'AWS_ACCESS_KEY_ID': credentials.access_key,
                     'AWS_SECRET_ACCESS_KEY': credentials.secret_key,
-                    'AWS_SESSION_TOKEN': credentials.token}
+                    'AWS_SESSION_TOKEN': credentials.token,
+                    'AWS_ACCOUNT_ID': identity.get('Account')}
     return env_vars

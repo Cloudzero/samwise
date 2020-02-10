@@ -6,10 +6,14 @@ DEFAULT_TEMPLATE_FILE_PATH = ".samwise"
 DEFAULT_TEMPLATE_FILE_NAME = "samwise.yaml"
 FILE_INCLUDE_REGEX = r"(.*)#{include ([a-zA-Z0-9./]+)}"
 
+
 # Metadata
 CFN_METADATA_KEY = 'Metadata'
+TAGS_KEY = "Tags"
 VARS_KEY = "Variables"
-SAMWISE_METADATA_KEY = "SAMWise"
+SAMWISE_KEY = "SAMWise"
 STACK_NAME_KEY = "StackName"
 NAMESPACE_KEY = "Namespace"
+ACCOUNT_ID_KEY = "AccountId"
 DEPLOYBUCKET_NAME_KEY = "DeployBucket"
+FILE_INCLUDE_REGEX = rf"(.*)#{{{SAMWISE_KEY}::include ([a-zA-Z0-9./]+)}}"

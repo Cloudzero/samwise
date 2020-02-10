@@ -4,7 +4,7 @@
 Metadata:
   SAMWise:
     Version: '1.0'
-    DeployBucket: 'sample-deploy-bucket'
+    DeployBucket: 'sample-deploy-bucket-#{SAMWise::AccountId}'
     StackName: 'MyStackName'
     Variables:
       - PreparedVar: "PreparedValue"

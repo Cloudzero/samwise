@@ -8,6 +8,7 @@ DEFAULT_TEMPLATE_FILE_NAME = "samwise.yaml"
 
 # Metadata
 CFN_METADATA_KEY = 'Metadata'
+TAGS_KEY = "Tags"
 VARS_KEY = "Variables"
 SAMWISE_KEY = "SAMWise"
 STACK_NAME_KEY = "StackName"

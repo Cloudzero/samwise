@@ -63,22 +63,18 @@ def test_happy_path(valid_template, namespace):
         {'SAMWise::StackName': 'MyStackName'},
         {'SAMWise::Namespace': namespace}
     ]
-    var_count, rendered_obj = handler.parse(obj, metadata)
-    assert rendered_obj['Parameters']['Namespace']['Default'] == namespace
+    assert obj['Parameters']['Namespace']['Default'] == namespace
 
 
 def test_account_id(accountid_template, namespace):
-    obj, metadata = handler.load(accountid_template, namespace)
-    assert obj
-    var_count, rendered_obj = handler.parse(obj, metadata, '123456789012')
-    assert rendered_obj['Metadata']['SAMWise']['DeployBucket'] == 'sample-deploy-bucket-123456789012'
+    obj, metadata = handler.load(accountid_template, namespace, '123456789012')
+    assert obj['Metadata']['SAMWise']['DeployBucket'] == 'sample-deploy-bucket-123456789012'
 
 
 def test_include_samwise_template(include_template, include_data, namespace):
     obj, metadata = handler.load(include_template, namespace)
     assert obj
-    var_count, rendered_obj = handler.parse(obj, metadata)
-    yaml_string = yaml_dumps(rendered_obj['Resources']['MyStateMachine']['Properties']['DefinitionString'])
+    yaml_string = yaml_dumps(obj['Resources']['MyStateMachine']['Properties']['DefinitionString'])
     assert yaml_string == f"!Sub |\n{include_data}\n"
 
 

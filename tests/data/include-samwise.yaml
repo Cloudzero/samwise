@@ -17,7 +17,7 @@ Parameters:
   Namespace:
     Type: String
     Description: Unique (within a given AWS account) System Name
-    Default: '#{Namespace}'
+    Default: '#{SAMWise::Namespace}'
 
 Globals:
   Function:
@@ -26,8 +26,8 @@ Globals:
     Environment:
       Variables:
         LOG_LEVEL: INFO
-        NAMESPACE: '#{Namespace}'
-        FEATURE: '#{StackName}'
+        NAMESPACE: '#{SAMWise::Namespace}'
+        FEATURE: '#{SAMWise::StackName}'
         CONFIG: !Sub 's3://${ConfigBucket}/configuration.json'
 
 
@@ -36,14 +36,14 @@ Resources:
   MyStateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
-      StateMachineName: !Sub "#{Namespace}-#{StackName}-stm"
+      StateMachineName: !Sub "#{SAMWise::Namespace}-#{SAMWise::StackName}-stm"
       RoleArn: !GetAtt MyStateMachineRole.Arn
-      DefinitionString: #{include ./tests/data/MyStateMachine.json}
+      DefinitionString: "#{SAMWise::include ./tests/data/MyStateMachine.json}"
 
   MyStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "#{Namespace}-#{StackName}-stm-role"
+      RoleName: !Sub "#{SAMWise-Namespace}-#{SAMWise-StackName}-stm-role"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -52,7 +52,7 @@ Resources:
             Principal:
               Service: !Sub states.${AWS::Region}.amazonaws.com
       Policies:
-        - PolicyName: !Sub "#{Namespace}-#{StackName}-stm-role-policy"
+        - PolicyName: !Sub "#{SAMWise::Namespace}-#{SAMWise::StackName}-stm-role-policy"
           PolicyDocument:
             Statement:
               - Effect: Allow
@@ -68,7 +68,7 @@ Resources:
   MyFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: '#{Namespace}-#{StackName}-MyFunction'
+      FunctionName: '#{SAMWise::Namespace}-#{SAMWise::StackName}-MyFunction'
       Handler: functions/my/handler.main
       MemorySize: 128
       Policies:
@@ -78,7 +78,7 @@ Resources:
   LoadConfig:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: '#{Namespace}-#{StackName}-LoadConfig'
+      FunctionName: '#{SAMWise::Namespace}-#{SAMWise::StackName}-LoadConfig'
       Handler: functions/config/handler.main
       MemorySize: 128
       Policies:
@@ -89,10 +89,10 @@ Resources:
   ConfigBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '#{Namespace}-#{StackName}-${AWS::AccountId}'
+      BucketName: !Sub '#{SAMWise::Namespace}-#{SAMWise::StackName}-${AWS-AccountId}'
 
   # Topics
   SampleEvents:
     Type: AWS::SNS::Topic
     Properties:
-      TopicName: '#{Namespace}-#{StackName}-events'
+      TopicName: '#{SAMWise::Namespace}-#{SAMWise::StackName}-events'

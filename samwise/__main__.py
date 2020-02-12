@@ -39,7 +39,7 @@ from samwise import __version__, constants
 from samwise.constants import VARS_KEY
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
 from samwise.features.package import build
-from samwise.features.template import load, save, parse
+from samwise.features.template import load, save
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
 from samwise.utils.filesystem import hash_directory

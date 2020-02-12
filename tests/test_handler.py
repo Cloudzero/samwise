@@ -60,8 +60,9 @@ def test_happy_path(valid_template, namespace):
     assert metadata['StackName'] == 'MyStackName'
     assert metadata['Variables'] == [
         OrderedDict({'PreparedVar': 'PreparedValue'}),
-        {'SAMWise::StackName': 'MyStackName'},
-        {'SAMWise::Namespace': namespace}
+        {'SAMWise::AccountId': '**AWS ACCOUNT ID TBD**'},
+        {'SAMWise::Namespace': namespace},
+        {'SAMWise::StackName': 'MyStackName'}
     ]
     assert obj['Parameters']['Namespace']['Default'] == namespace
 
@@ -81,8 +82,7 @@ def test_include_samwise_template(include_template, include_data, namespace):
 def test_include_samwise_template(include_template, include_data, namespace):
     obj, metadata = handler.load(include_template, namespace)
     assert obj
-    var_count, rendered_obj = handler.parse(obj, metadata)
-    yaml_string = yaml_dumps(rendered_obj['Resources']['MyStateMachine']['Properties']['DefinitionString'])
+    yaml_string = yaml_dumps(obj['Resources']['MyStateMachine']['Properties']['DefinitionString'])
     assert yaml_string == f"!Sub |\n{include_data}\n"
 
 

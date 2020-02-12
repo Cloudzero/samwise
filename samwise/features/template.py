@@ -2,8 +2,6 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 import os.path
 import re
-import secrets
-import string
 import textwrap
 from pathlib import Path
 
@@ -105,8 +103,6 @@ def search_and_replace_file_include_token(yaml_string):
     # find and handle the special #{SAMWise::include <filename>} syntax in templates
     for match, line_number in include_matches:
         prefix, file_name = match.groups()
-        # create a random token name (no collisions!) to replace the include token with
-        random_string = ''.join(secrets.choice(string.ascii_lowercase) for i in range(12))
         file_path = os.path.abspath(file_name)
         if os.path.exists(file_path):
             # We use the len of prefix to align the YAML correctly

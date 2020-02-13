@@ -2,53 +2,60 @@
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 import os.path
 import re
-import secrets
-import string
 import textwrap
 from pathlib import Path
 
 from ruamel.yaml import YAML
 from voluptuous import REMOVE_EXTRA, All, Length, Optional, Required, Schema
 
-from samwise import constants
-from samwise.constants import FILE_INCLUDE_REGEX
+from samwise.constants import VARS_KEY, FILE_INCLUDE_REGEX, CFN_METADATA_KEY, SAMWISE_KEY, STACK_NAME_KEY, \
+    NAMESPACE_KEY, ACCOUNT_ID_KEY, TAGS_KEY
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
-from samwise.utils.tools import finditer_with_line_numbers, yaml_dumps
+from samwise.utils.tools import finditer_with_line_numbers
 
 
-def load(input_file_name, namespace):
+def load(input_file_name, namespace, aws_account_id=None):
     full_path_name = os.path.abspath(input_file_name)
-    input_text = Path(full_path_name).read_text()
-    yaml = YAML()
-    samwise_obj = yaml.load(input_text)
+    template_text = Path(full_path_name).read_text()
+
+    system_vars = {f"{SAMWISE_KEY}::{ACCOUNT_ID_KEY}": aws_account_id or "**AWS ACCOUNT ID TBD**",
+                   f"{SAMWISE_KEY}::{NAMESPACE_KEY}": namespace}
+    template_text = search_and_replace_samwise_variables(template_text, system_vars)
+    samwise_obj = YAML().load(template_text)
 
     samwise_schema = Schema({
         Required('Version'): "1.0",
         Required('DeployBucket'): All(str, Length(min=3, max=63)),
-        Required('StackName'): str,
-        Optional('Variables'): list,
-        Optional('SamTemplate'): str
+        Required(STACK_NAME_KEY): str,
+        Optional(TAGS_KEY): list,
+        Optional(VARS_KEY): list,
+        Optional('Template'): str
     }, extra=REMOVE_EXTRA)
 
     try:
-        metadata = samwise_obj[constants.CFN_METADATA_KEY][constants.SAMWISE_METADATA_KEY]
-        samwise_metadata = samwise_schema(metadata)
+        samwise_metadata = samwise_schema(samwise_obj[CFN_METADATA_KEY][SAMWISE_KEY])
+        if samwise_metadata.get('Template'):
+            template_path_name = os.path.join(os.path.dirname(full_path_name), samwise_metadata.get('Template'))
+            template_text = Path(template_path_name).read_text()
 
-        if samwise_metadata.get('SamTemplate'):
-            template_obj = yaml.load(samwise_metadata.get('SamTemplate'))
+        # Add stack name and system vars
+        system_vars_list = [{k: v} for k, v in system_vars.items()]
+        if not samwise_metadata.get(VARS_KEY):
+            samwise_metadata[VARS_KEY] = system_vars_list
         else:
-            template_obj = samwise_obj
+            samwise_metadata[VARS_KEY] += system_vars_list
+        samwise_metadata[VARS_KEY] += [{f"{SAMWISE_KEY}::{STACK_NAME_KEY}": samwise_metadata[STACK_NAME_KEY]}]
 
-        # Add stack name and namespace to available variables
-        try:
-            samwise_metadata[constants.VARS_KEY].extend([{constants.STACK_NAME_KEY: metadata[constants.STACK_NAME_KEY]},
-                                                         {constants.NAMESPACE_KEY: namespace}])
-        except KeyError:
-            samwise_metadata[constants.VARS_KEY] = [{constants.STACK_NAME_KEY: metadata[constants.STACK_NAME_KEY]},
-                                                    {constants.NAMESPACE_KEY: namespace}]
+        # Add tags
+        if not samwise_metadata.get(TAGS_KEY):
+            samwise_metadata[TAGS_KEY] = [{"StackName": samwise_metadata[STACK_NAME_KEY]}]
+        else:
+            samwise_metadata[TAGS_KEY] += [{"StackName": samwise_metadata[STACK_NAME_KEY]}]
+
     except Exception as error:
         raise UnsupportedSAMWiseVersion(f"Unsupported or invalid SAMWise Template '{error}'")
 
+    template_obj = parse(template_text, samwise_metadata)
     return template_obj, samwise_metadata
 
 
@@ -59,9 +66,9 @@ def save(template_yaml_obj, output_file_location):
     YAML().dump(template_yaml_obj, out)
 
 
-def parse(template_obj, metadata):
+def parse(template_text, metadata):
     processed_variables = {}
-    variables = metadata.get(constants.VARS_KEY, [])
+    variables = metadata.get(VARS_KEY, [])
 
     for var in variables:
         if not isinstance(var, dict):
@@ -70,46 +77,43 @@ def parse(template_obj, metadata):
         else:
             processed_variables.update(var)
 
-    yaml_string = yaml_dumps(template_obj)
-    include_matches = finditer_with_line_numbers(FILE_INCLUDE_REGEX, yaml_string)
+    template_text = search_and_replace_file_include_token(template_text)
+    template_text = search_and_replace_samwise_variables(template_text, processed_variables)
+    final_template_obj = YAML().load(template_text)
 
-    # find and handle the special #{include <filename>} syntax in templates
+    # explicitly set the code uri for each function in preparation of packaging
+    for k, v in final_template_obj['Resources'].items():
+        if v.get('Type') == 'AWS::Serverless::Function':
+            final_template_obj['Resources'][k]['Properties']['CodeUri'] = 'samwise-pkg.zip'
+
+    return final_template_obj
+
+
+def search_and_replace_samwise_variables(yaml_string, variables):
+    for var_name, var_value in variables.items():
+        match_string = "#{{{var_name}}}".format(var_name=var_name)
+        yaml_string = re.sub(match_string,
+                             var_value,
+                             yaml_string)
+    return yaml_string
+
+
+def search_and_replace_file_include_token(yaml_string):
+    include_matches = finditer_with_line_numbers(FILE_INCLUDE_REGEX, yaml_string)
+    # find and handle the special #{SAMWise::include <filename>} syntax in templates
     for match, line_number in include_matches:
         prefix, file_name = match.groups()
-        # create a random token name (no collisions!) to replace the include token with
-        random_string = ''.join(secrets.choice(string.ascii_lowercase) for i in range(12))
         file_path = os.path.abspath(file_name)
         if os.path.exists(file_path):
-            # match 0 is the string before match 1, we use the len of that to ensure we align the YAML correctly
+            # We use the len of prefix to align the YAML correctly
             inline_file = textwrap.indent(Path(file_path).read_text(), ' ' * len(prefix))
 
-            # add the inline file contents to processed variables for later render
-            processed_variables[f"{random_string}"] = f"!Sub |\n{inline_file}"
-
-            # mutate yaml_string with new random token
-            yaml_string = re.sub(r"#{{include {file_name}}}".format(file_name=file_name),
-                                 f"#{{{random_string}}}",
+            match_string = "['\"]#{{{samwise_key}::include {file_name}}}['\"]".format(samwise_key=SAMWISE_KEY,
+                                                                                      file_name=file_name)
+            yaml_string = re.sub(match_string,
+                                 f"!Sub |\n{inline_file}",
                                  yaml_string)
         else:
             # if we can't find the file, drop out here
-            raise InlineIncludeNotFound(f"Line {line_number}: Could not find inline include file {file_path}")
-
-    # Render the now ready template and variables
-    rendered_template = __render_samwise_template(yaml_string, processed_variables)
-    rendered_template_obj = YAML().load(rendered_template)
-
-    # explicitly set the code uri for each function in preparation of packaging
-    for k, v in rendered_template_obj['Resources'].items():
-        if v.get('Type') == 'AWS::Serverless::Function':
-            rendered_template_obj['Resources'][k]['Properties']['CodeUri'] = 'samwise-pkg.zip'
-
-    return len(processed_variables), rendered_template_obj
-
-
-def __render_samwise_template(template_string, replacement_map):
-    prepared_template = SamTemplate(template_string)
-    return prepared_template.safe_substitute(**replacement_map)
-
-
-class SamTemplate(string.Template):
-    delimiter = '#'
+            raise InlineIncludeNotFound(f"Error on line {line_number}: Could not find inline include file {file_path}")
+    return yaml_string

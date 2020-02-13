@@ -79,13 +79,6 @@ def test_include_samwise_template(include_template, include_data, namespace):
     assert yaml_string == f"!Sub |\n{include_data}\n"
 
 
-def test_include_samwise_template(include_template, include_data, namespace):
-    obj, metadata = handler.load(include_template, namespace)
-    assert obj
-    yaml_string = yaml_dumps(obj['Resources']['MyStateMachine']['Properties']['DefinitionString'])
-    assert yaml_string == f"!Sub |\n{include_data}\n"
-
-
 def test_non_samwise_template(non_samwise_template, namespace):
     with pytest.raises(Exception) as err:
         handler.load(non_samwise_template, namespace)

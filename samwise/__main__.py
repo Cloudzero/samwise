@@ -4,7 +4,7 @@
 """SAMWise v${VERSION} - Tools for better living with the AWS Serverless Application model and CloudFormation
 
 Usage:
-    samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
+    samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print] [--profile <PROFILE>]
     samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
     samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
     samwise (-h | --help)
@@ -36,9 +36,10 @@ from colorama import Fore
 from docopt import docopt
 
 from samwise import __version__, constants
+from samwise.constants import VARS_KEY
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
 from samwise.features.package import build
-from samwise.features.template import load, save, parse
+from samwise.features.template import load, save
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
 from samwise.utils.filesystem import hash_directory
@@ -64,42 +65,49 @@ def main():
     print('-' * 100)
 
     input_file = arguments.get('--in') or constants.DEFAULT_TEMPLATE_FILE_NAME
+    output_location = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
     input_filepath = os.path.abspath(input_file)
+
+    if aws_profile:
+        aws_creds = get_aws_credentials(aws_profile)
+        aws_account_id = aws_creds['AWS_ACCOUNT_ID']
+    else:
+        aws_creds = None
+        aws_account_id = None
+
+    print(f"{Fore.LIGHTCYAN_EX} - Loading SAMWise template{Fore.RESET}")
     try:
-        template_obj, metadata = load(input_filepath, namespace)
+        template_obj, metadata = load(input_filepath, namespace, aws_account_id)
         base_dir = os.path.dirname(input_filepath)
     except FileNotFoundError as error:
-        print(f"Could not load input template, {error}")
+        print(f"{Fore.RED}   - Could not load input template, {error}{Fore.RESET}")
         sys.exit(1)
-    except UnsupportedSAMWiseVersion as error:
-        print(error)
+    except (InlineIncludeNotFound, UnsupportedSAMWiseVersion) as error:
+        print(f"{Fore.RED}   - ERROR: {error}{Fore.RESET}")
         sys.exit(2)
 
-    s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
+    stack_name = metadata['StackName']
+    print(f"   - Found stack {stack_name} and processed {len(metadata[VARS_KEY])} SAMWise variables")
+    print(f"   - CloudFormation Template rendered to {os.path.abspath(output_location)}/template.yaml")
+    save(template_obj, output_location)
 
-    output_location = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
+    s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
+    tags = metadata[constants.TAGS_KEY]
+
     if arguments.get('generate'):
         print(f"Generating CloudFormation Template")
-        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
         if arguments.get('--print'):
             print("-" * 100)
-            yaml_print(parsed_template_obj)
-
-    elif arguments.get('package'):
-        aws_creds = get_aws_credentials(aws_profile)
-        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
-        package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
-
-    elif arguments.get('deploy'):
-        aws_creds = get_aws_credentials(aws_profile)
-        stack_name, parsed_template_obj = pre_process_template(metadata, output_location, template_obj)
-        package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
-        deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, parameter_overrides)
+            yaml_print(template_obj)
+    elif arguments.get('package') or arguments.get('deploy'):
+        package(stack_name, template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
+        if arguments.get('deploy'):
+            deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides)
     else:
         print('Nothing to do')
 
 
-def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, parameter_overrides=None):
+def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides=None):
     print(f"{Fore.LIGHTCYAN_EX} - Deploying Stack '{stack_name}' using AWS profile '{aws_profile}'{Fore.RESET}")
     # keeping the CFN way around for reference.
     # The new sam deploy way is great!
@@ -109,12 +117,18 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, p
     #            "--capabilities", "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM",
     #            "--region", deploy_region,
     #            "--stack-name", f"{stack_name}"]
+
+    formatted_tags = " ".join([f"{k}={v}" for tag in tags for k, v in tag.items()])
+    print(f"   - Tags:")
+    print(f"       {formatted_tags}")
+
     command = ["sam", "deploy",
                "--template-file", f"{output_location}/packaged.yaml",
                "--capabilities", "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM",
                "--region", deploy_region,
                "--no-fail-on-empty-changeset",
-               "--stack-name", f"{stack_name}"]
+               "--stack-name", f"{stack_name}",
+               "--tags", f"{formatted_tags}"]
 
     if parameter_overrides:
         command += ["--parameter-overrides", parameter_overrides]
@@ -196,21 +210,6 @@ def check_for_code_changes(base_dir, template_globals):
     config[f"{code_path}|globals_hash"] = globals_hash
     json.dump(config, config_file.open('w'))
     return changes
-
-
-def pre_process_template(metadata, output_location, template_obj):
-    print(f"{Fore.LIGHTCYAN_EX} - Reading SAMWise template{Fore.RESET}")
-    try:
-        var_count, parsed_template_obj = parse(template_obj, metadata)
-        stack_name = parsed_template_obj['Metadata']['SAMWise']['StackName']
-    except InlineIncludeNotFound as error:
-        print(f"{Fore.RED}   - ERROR: {error}{Fore.RESET}")
-        sys.exit(1)
-
-    print(f"   - Found stack {stack_name} and processed {var_count} SAMWise variables")
-    print(f"   - CloudFormation Template fully rendered to {os.path.abspath(output_location)}/template.yaml")
-    save(parsed_template_obj, output_location)
-    return stack_name, parsed_template_obj
 
 
 if __name__ == "__main__":

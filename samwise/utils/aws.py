@@ -70,14 +70,19 @@ def get_aws_credentials(profile_name, duration=None):
         duration = 3600
 
     # Construct low level botocore session with cache, which allows MFA session reuse
-    session = botocore.session.Session(profile=profile_name)
+    if profile_name:
+        session = botocore.session.Session(profile=profile_name)
+        mfa_serial = session.full_config['profiles'][profile_name].get('mfa_serial')
+    else:
+        session = botocore.session.Session()
+        mfa_serial = None
+
     session.get_component('credential_provider').get_provider('assume-role').cache = \
         botocore.credentials.JSONFileCache()
 
     # this mfa_serial code is _only_ here to deal with boto profiles that _do not_ assume a role
     # which is required because this PR is still open: https://github.com/boto/botocore/pull/1399
     # otherwise MFA is nicely handled automatically by boto. Sadly, these credentials are not cached
-    mfa_serial = session.full_config['profiles'][profile_name].get('mfa_serial')
     if mfa_serial and not session.full_config['profiles'][profile_name].get('role_arn'):
         sts = session.create_client('sts')
         mfa_code = input("Enter MFA code for {}: ".format(mfa_serial))

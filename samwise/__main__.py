@@ -4,9 +4,9 @@
 """SAMWise v${VERSION} - Tools for better living with the AWS Serverless Application model and CloudFormation
 
 Usage:
-    samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print] [--profile <PROFILE>]
-    samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
-    samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
+    samwise generate --namespace <NAMESPACE> [--profile <PROFILE>] [--in <FILE>] [--out <FOLDER> | --print]
+    samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
+    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
     samwise (-h | --help)
 
 Options:
@@ -17,12 +17,11 @@ Options:
     --out <FOLDER>                  Output folder.
     --profile <PROFILE>             AWS Profile to use.
     --namespace <NAMESPACE>         System namespace to distinguish this deployment from others
-    --vars <INPUT>                  SAMwise pre-processed variable substitutions (name=value)
+    --vars <INPUT>                  SAMWise pre-processed variable substitutions (name=value)
     --parameter-overrides <INPUT>   AWS CloudFormation parameter-overrides (name=value)
     --s3-bucket <BUCKET>            Deployment S3 Bucket.
     --region <REGION>               AWS region to deploy to [default: us-east-1].
     --print                         Sent output to screen.
-    -y                              Choose yes.
     -? --help                       Usage help.
 """
 import json
@@ -61,19 +60,15 @@ def main():
     if aws_profile:
         print(f"SAMWise CLI v{__version__} | AWS Profile: {aws_profile}")
     else:
-        print(f"SAMWise CLI v{__version__}")
+        print(f"SAMWise CLI v{__version__}| AWS Profile via environment")
     print('-' * 100)
 
     input_file = arguments.get('--in') or constants.DEFAULT_TEMPLATE_FILE_NAME
     output_location = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
     input_filepath = os.path.abspath(input_file)
 
-    if aws_profile:
-        aws_creds = get_aws_credentials(aws_profile)
-        aws_account_id = aws_creds['AWS_ACCOUNT_ID']
-    else:
-        aws_creds = None
-        aws_account_id = None
+    aws_creds = get_aws_credentials(aws_profile)
+    aws_account_id = aws_creds['AWS_ACCOUNT_ID']
 
     print(f"{Fore.LIGHTCYAN_EX} - Loading SAMWise template{Fore.RESET}")
     try:

@@ -1,7 +1,7 @@
 # SAMWise (Beta)
 > “Come on, Mr. Frodo. I can’t carry it for you… but I can carry you!” -- Samwise Gamgee, Lord of the Rings
 
-![Build Status](https://cloudzero.semaphoreci.com/badges/samwise.svg)
+![Build Status](https://cloudzero.semaphoreci.com/badges/samwise.svg) ![Version](https://img.shields.io/pypi/v/samwise?style=flat-square)
 
 If you :heart: love the AWS Serverless Application Model, CloudFormation and living an AWS native lifestyle but
 you found the SAM or CloudFormation packaging and deployment process just a little bit wanting, SAMWise was created
@@ -50,8 +50,10 @@ and link to it in your samwise.yaml
       SAMWise:
         Version: '1.0'
         DeployBucket: <S3 DEPLOY BUCKET>
-        StackName: <YOUR STACK NAME>  # StackName is also provided as a #{Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
+        StackName: <YOUR STACK NAME>  # StackName is also provided as a #{SAMWise::Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
         SamTemplate: template.yaml    # OPTIONAL if you don't want to touch your template.yaml
+        Tags:
+          - Name: Value
         Variables:                    # Provides simple #{Variable} token replacement within your template
           - MyRuntimeVar              # Will prompt or require via CLI the value for MyRuntimeVar
           - MyPreparedVar: SomeValue  # Some Prepared variable
@@ -66,15 +68,9 @@ throughout your template so you can deploy multiple instantiations of your stack
 ## Features
 - One line deploy with minimal command line arguments
 - Simple namespaces and template variable substitution using `#{variable}`
-- Link in external files using `#{include ./file.json}`
+- Link in external files using `#{SAMWise::include ./file.json}`
 - Super fast and efficient packaging!
 - First class support for MFA (with caching!)
-
-### A note on SAMWise's variable substitution feature
-This feature/idea is a work in progress. It's purpose isn't to add a feature that CloudFormation doesn't have
-(which it does, mappings), but to allow for a more pleasant, easier on the eyes syntax for setting up mappings.
-For the moment it is simple token substitution, and that might actually be good enough. In time however this might
-evolve, how, well that depends on you and i'd love to hear your feedback.    
 
 ### Language Support:
 > Currently only Python is supported, sorry ¯\\\_(ツ)\_/¯
@@ -86,15 +82,14 @@ evolve, how, well that depends on you and i'd love to hear your feedback.
 
 ## Usage
 
-    $ samwise --help
-    SAMWise v0.0.5 - Tools for better living with the AWS Serverless Application model and CloudFormation
-
+    SAMWise v0.0.6 - Tools for better living with the AWS Serverless Application model and CloudFormation
+    
     Usage:
-        samwise generate --namespace <NAMESPACE> [--in <FILE>] [--out <FOLDER> | --print]
-        samwise package --profile <PROFILE> --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
-        samwise deploy --profile <PROFILE>  --namespace <NAMESPACE> [--vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
+        samwise generate --namespace <NAMESPACE> [--profile <PROFILE>] [--in <FILE>] [--out <FOLDER> | --print]
+        samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
+        samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
         samwise (-h | --help)
-
+    
     Options:
         generate                        Process a samwise.yaml template and produce a CloudFormation template ready for packaging and deployment
         package                         Generate and Package your code (including sending to S3)
@@ -103,31 +98,36 @@ evolve, how, well that depends on you and i'd love to hear your feedback.
         --out <FOLDER>                  Output folder.
         --profile <PROFILE>             AWS Profile to use.
         --namespace <NAMESPACE>         System namespace to distinguish this deployment from others
-        --vars <INPUT>                  SAMwise pre-processed variable substitutions (name=value)
+        --vars <INPUT>                  SAMWise pre-processed variable substitutions (name=value)
         --parameter-overrides <INPUT>   AWS CloudFormation parameter-overrides (name=value)
         --s3-bucket <BUCKET>            Deployment S3 Bucket.
         --region <REGION>               AWS region to deploy to [default: us-east-1].
         --print                         Sent output to screen.
-        -y                              Choose yes.
         -? --help                       Usage help.
 
-### Using SAMWise Variable substitution and external file includes
-SAMWise has two types of tokens you can use to substitute content: variables and includes
+## Using SAMWise Variable substitution and external file includes
+SAMWise has three types of tokens you can use to substitute content: variables and includes
 
-#### Variables
+### Variables
 Using the SAMWise metadata section, you can define any number of variables for use within your template.
 Once defined, you can insert them anywhere within your template using `#{variable-name}` syntax. Variables
 are evaluated before your CloudFormation template and any mappings or parameter overrides are evaluated
 
-#### Includes
+### SAMWise::Variables
+There are 3 SAMWise variables that can also be used anywhere in your template (including the SAMWise block)
+* `#{SAMWise::Namespace}` - Replaced with the namespace you provide via the command line
+* `#{SAMwise::StackName}` - Replaced with the stack name you specify in your template
+* `#{SAMWise::AccountId}` - Replaced with the account ID of the AWS profile you deploy to
+
+### SAMWise::Include
 Have you been spending time with StepFunctions lately? Getting tired of writing JSON inline with YAML?
 Wish you could find a nicer editing experience with version control that didn't require you to copy
 and paste? If so, SAMWise file includes were made for you! Place whatever file you want to include in
-your template wherever you want and use the file include syntax `#{include ./my-file.json}`. Relative
-paths are supported.
+your template wherever you want and use the file include syntax `#{SAMWise::include ./my-file.json}`. Relative
+paths are supported. 
 
-## Roadmap
-Here's what's on the SAMWise roadmap (in priority order):
+## Road map
+Here's what's on the SAMWise road map (in priority order):
 1. Making packaging even more efficient and fast. Seriously, it can never be _too_ fast.
 1. Support more Languages/runtimes
     - It would be nice to support more than just Python. This is where the SAM CLI actually has done an

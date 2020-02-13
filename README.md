@@ -116,7 +116,7 @@ are evaluated before your CloudFormation template and any mappings or parameter 
 ### SAMWise::Variables
 There are 3 SAMWise variables that can also be used anywhere in your template (including the SAMWise block)
 * `#{SAMWise::Namespace}` - Replaced with the namespace you provide via the command line
-* `#{SAMwise::StackName}` - Replaced with the stack name you specify in your template
+* `#{SAMWise::StackName}` - Replaced with the stack name you specify in your template
 * `#{SAMWise::AccountId}` - Replaced with the account ID of the AWS profile you deploy to
 
 ### SAMWise::Include

@@ -6,57 +6,91 @@ import textwrap
 from pathlib import Path
 
 from ruamel.yaml import YAML
-from voluptuous import REMOVE_EXTRA, All, Length, Optional, Required, Schema
+from voluptuous import REMOVE_EXTRA, All, Length, Optional, Required, Schema, Invalid, MultipleInvalid
+from voluptuous.humanize import humanize_error
 
 from samwise.constants import VARS_KEY, FILE_INCLUDE_REGEX, CFN_METADATA_KEY, SAMWISE_KEY, STACK_NAME_KEY, \
-    NAMESPACE_KEY, ACCOUNT_ID_KEY, TAGS_KEY
-from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
+    NAMESPACE_KEY, ACCOUNT_ID_KEY, TAGS_KEY, SAMWISE_TEMPLATE_FILE_NAME, AWS_SAM_TEMPLATE_FILE_NAME, \
+    SAMWISE_SUPPORTED_VERSIONS, DEPLOY_BUCKET_KEY
+from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound, TemplateNotFound, \
+    InvalidSAMWiseTemplate
 from samwise.utils.tools import finditer_with_line_numbers
 
 
-def load(input_file_name, namespace, aws_account_id=None):
-    full_path_name = os.path.abspath(input_file_name)
-    template_text = Path(full_path_name).read_text()
+def load(file_name, namespace, aws_account_id=None):
+    template_text = None
+    template_path = None
+    input_file_names = list(filter(None, [file_name, SAMWISE_TEMPLATE_FILE_NAME, AWS_SAM_TEMPLATE_FILE_NAME]))
 
-    system_vars = {f"{SAMWISE_KEY}::{ACCOUNT_ID_KEY}": aws_account_id or "**AWS ACCOUNT ID TBD**",
+    while not template_text:
+        for template_file in input_file_names:
+            template_path = os.path.abspath(template_file)
+            try:
+                template_text = Path(template_path).read_text()
+                break
+            except FileNotFoundError:
+                pass
+        else:
+            raise TemplateNotFound(f"No SAM or SAMWise template file could be found, "
+                                   f"tried {', '.join(input_file_names)}")
+
+    # By doing this here, we can support SAMWise vars even in the SAMWise metadata block
+    aws_account_id = aws_account_id or f"{{{SAMWISE_KEY}::{ACCOUNT_ID_KEY}}}"
+    namespace = namespace or f"{{{SAMWISE_KEY}::{NAMESPACE_KEY}}}"
+    system_vars = {f"{SAMWISE_KEY}::{ACCOUNT_ID_KEY}": aws_account_id,
                    f"{SAMWISE_KEY}::{NAMESPACE_KEY}": namespace}
     template_text = search_and_replace_samwise_variables(template_text, system_vars)
     samwise_obj = YAML().load(template_text)
 
     samwise_schema = Schema({
-        Required('Version'): "1.0",
-        Required('DeployBucket'): All(str, Length(min=3, max=63)),
+        Required('Version'): str,
+        Optional(DEPLOY_BUCKET_KEY): All(str, Length(min=5, max=63)),
         Required(STACK_NAME_KEY): str,
         Optional(TAGS_KEY): list,
         Optional(VARS_KEY): list,
         Optional('Template'): str
     }, extra=REMOVE_EXTRA)
 
+    samwise_path = None
     try:
         samwise_metadata = samwise_schema(samwise_obj[CFN_METADATA_KEY][SAMWISE_KEY])
         if samwise_metadata.get('Template'):
-            template_path_name = os.path.join(os.path.dirname(full_path_name), samwise_metadata.get('Template'))
-            template_text = Path(template_path_name).read_text()
-
-        # Add stack name and system vars
-        system_vars_list = [{k: v} for k, v in system_vars.items()]
-        if not samwise_metadata.get(VARS_KEY):
-            samwise_metadata[VARS_KEY] = system_vars_list
-        else:
-            samwise_metadata[VARS_KEY] += system_vars_list
-        samwise_metadata[VARS_KEY] += [{f"{SAMWISE_KEY}::{STACK_NAME_KEY}": samwise_metadata[STACK_NAME_KEY]}]
-
-        # Add tags
-        if not samwise_metadata.get(TAGS_KEY):
-            samwise_metadata[TAGS_KEY] = [{"StackName": samwise_metadata[STACK_NAME_KEY]}]
-        else:
-            samwise_metadata[TAGS_KEY] += [{"StackName": samwise_metadata[STACK_NAME_KEY]}]
-
+            samwise_path = os.path.join(os.path.dirname(template_path), samwise_metadata.get('Template'))
+            template_text = Path(samwise_path).read_text()
+    except (Invalid, MultipleInvalid) as error:
+        raise InvalidSAMWiseTemplate(f"SAMWise metadata is invalid "
+                                     f"(error: {humanize_error(samwise_obj[CFN_METADATA_KEY][SAMWISE_KEY], error)})")
+    except KeyError:
+        raise InvalidSAMWiseTemplate(f"SAMWise metadata not found (template: {template_path})")
+    except FileNotFoundError:
+        raise TemplateNotFound(f"SAMWise template file could be found ({samwise_path})")
     except Exception as error:
-        raise UnsupportedSAMWiseVersion(f"Unsupported or invalid SAMWise Template '{error}'")
+        raise InvalidSAMWiseTemplate(f"Unexpected error processing SAMWise Template '{error}'")
+
+    if samwise_metadata['Version'] not in SAMWISE_SUPPORTED_VERSIONS:
+        raise UnsupportedSAMWiseVersion(f"SAMWise version {samwise_metadata['Version']} "
+                                        f"is not supported by this version of SAMWise")
+
+    # Add stack name to system vars (defined above) and combine with any user provided variables
+    system_vars[f"{SAMWISE_KEY}::{STACK_NAME_KEY}"] = samwise_metadata[STACK_NAME_KEY]
+    system_vars_list = [{k: v} for k, v in system_vars.items()]
+    if not samwise_metadata.get(VARS_KEY):
+        samwise_metadata[VARS_KEY] = system_vars_list
+    else:
+        samwise_metadata[VARS_KEY] += system_vars_list
+
+    # Add tags
+    if not samwise_metadata.get(TAGS_KEY):
+        samwise_metadata[TAGS_KEY] = [{"StackName": samwise_metadata[STACK_NAME_KEY]}]
+    else:
+        samwise_metadata[TAGS_KEY] += [{"StackName": samwise_metadata[STACK_NAME_KEY]}]
+
+    # add default deploy bucket (if needed)
+    if not samwise_metadata.get(DEPLOY_BUCKET_KEY):
+        samwise_metadata[DEPLOY_BUCKET_KEY] = f"samwise-deployment-{aws_account_id}"
 
     template_obj = parse(template_text, samwise_metadata)
-    return template_obj, samwise_metadata
+    return template_path, template_obj, samwise_metadata
 
 
 def save(template_yaml_obj, output_file_location):

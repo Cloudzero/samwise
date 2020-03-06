@@ -8,6 +8,8 @@ Metadata:
     StackName: 'MyStackName'
     Variables:
       - PreparedVar: "PreparedValue"
+    Tags:
+      - SampleTag: "SampleTagValue"
 
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31

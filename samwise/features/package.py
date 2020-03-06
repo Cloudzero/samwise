@@ -37,7 +37,7 @@ def get_python_runtime_image(parsed_template_obj):
 def build(parsed_template_obj, output_location, base_dir):
     runtime, docker_image = get_python_runtime_image(parsed_template_obj)
     print(f'   - Found Python runtime {runtime}')
-    client = check_docker(docker_image)
+    client = check_docker("lambci/lambda:latest")
 
     code_path = parsed_template_obj['Globals']['Function']['CodeUri']
     command = f"/bin/sh -c \"pip install pip --upgrade && pip install " \

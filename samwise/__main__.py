@@ -4,12 +4,14 @@
 """SAMWise v${VERSION} - Tools for better living with the AWS Serverless Application model and CloudFormation
 
 Usage:
-    samwise generate --namespace <NAMESPACE> [--profile <PROFILE>] [--in <FILE>] [--out <FOLDER> | --print]
-    samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
-    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
-    samwise (-h | --help)
+    samwise lint --namespace <NAMESPACE> [--profile <PROFILE> --in <FILE> --out <FOLDER>]
+    samwise generate --namespace <NAMESPACE> [--profile <PROFILE> --in <FILE>] [--out <FOLDER> | --print]
+    samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER> --yes]
+    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER> --yes]
+    samwise (--help | --version)
 
 Options:
+    lint                            Run cfn-lint against the generated template
     generate                        Process a samwise.yaml template and produce a CloudFormation template ready for packaging and deployment
     package                         Generate and Package your code (including sending to S3)
     deploy                          Generate, Package and Deploy your code
@@ -22,21 +24,25 @@ Options:
     --s3-bucket <BUCKET>            Deployment S3 Bucket.
     --region <REGION>               AWS region to deploy to [default: us-east-1].
     --print                         Sent output to screen.
+    -y --yes                        Answer Yes to any prompts
+    -v --version                    Print the SAMWise version number
     -? --help                       Usage help.
 """
 import json
 import os
 import string
 import sys
+import textwrap
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import cfnlint.core
 from colorama import Fore
 from docopt import docopt
 
 from samwise import __version__, constants
-from samwise.constants import VARS_KEY
-from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound
+from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound, InvalidSAMWiseTemplate, \
+    TemplateNotFound
 from samwise.features.package import build
 from samwise.features.template import load, save
 from samwise.utils.aws import get_aws_credentials
@@ -51,6 +57,10 @@ def main():
     doc_with_version = doc_string.safe_substitute(VERSION=__version__)
     arguments = docopt(doc_with_version)
 
+    if arguments.get('--version'):
+        print(f"SAMWise v{__version__}")
+        sys.exit()
+
     aws_profile = arguments.get('--profile')
     deploy_region = arguments.get('--region')
     namespace = arguments.get('--namespace')
@@ -58,51 +68,69 @@ def main():
     parameter_overrides += f" {constants.NAMESPACE_KEY}={namespace}"
 
     if aws_profile:
-        print(f"SAMWise CLI v{__version__} | AWS Profile: {aws_profile}")
+        print(f"SAMWise v{__version__} | AWS Profile: {aws_profile}")
     else:
-        print(f"SAMWise CLI v{__version__}| AWS Profile via environment")
+        print(f"SAMWise v{__version__}| AWS Profile via environment")
     print('-' * 100)
 
-    input_file = arguments.get('--in') or constants.DEFAULT_TEMPLATE_FILE_NAME
-    output_location = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
-    input_filepath = os.path.abspath(input_file)
+    input_file = arguments.get('--in')
+    output_path = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
 
     aws_creds = get_aws_credentials(aws_profile)
     aws_account_id = aws_creds['AWS_ACCOUNT_ID']
 
-    print(f"{Fore.LIGHTCYAN_EX} - Loading SAMWise template{Fore.RESET}")
+    print(f"{Fore.LIGHTCYAN_EX} - Looking for a SAMWise template{Fore.RESET}")
     try:
-        template_obj, metadata = load(input_filepath, namespace, aws_account_id)
-        base_dir = os.path.dirname(input_filepath)
-    except FileNotFoundError as error:
-        print(f"{Fore.RED}   - Could not load input template, {error}{Fore.RESET}")
-        sys.exit(1)
-    except (InlineIncludeNotFound, UnsupportedSAMWiseVersion) as error:
-        print(f"{Fore.RED}   - ERROR: {error}{Fore.RESET}")
+        template_path, template_obj, metadata = load(input_file, namespace, aws_account_id)
+    except (TemplateNotFound, InlineIncludeNotFound, UnsupportedSAMWiseVersion, InvalidSAMWiseTemplate) as error:
+        print(f"{Fore.RED} - ERROR: {error}{Fore.RESET}")
         sys.exit(2)
 
     stack_name = metadata['StackName']
-    print(f"   - Found stack {stack_name} and processed {len(metadata[VARS_KEY])} SAMWise variables")
-    print(f"   - CloudFormation Template rendered to {os.path.abspath(output_location)}/template.yaml")
-    save(template_obj, output_location)
+    print(f"   - Stack {stack_name} loaded")
 
-    s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
-    tags = metadata[constants.TAGS_KEY]
+    save(template_obj, output_path)
+    output_file_path = f"{os.path.abspath(output_path)}/template.yaml"
+    print(f"   - CloudFormation Template rendered to {output_file_path}")
 
-    if arguments.get('generate'):
-        print(f"Generating CloudFormation Template")
+    if arguments.get('lint'):
+        print(f"{Fore.LIGHTCYAN_EX} - Running cfn-lint against generated template{Fore.RESET}")
+        results = lint_template(output_file_path)
+        if results:
+            print(textwrap.indent(results, "   - "))
+            sys.exit(1)
+    elif arguments.get('generate'):
         if arguments.get('--print'):
             print("-" * 100)
             yaml_print(template_obj)
     elif arguments.get('package') or arguments.get('deploy'):
-        package(stack_name, template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides)
+        base_dir = os.path.dirname(template_path)
+        s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
+        package(stack_name, template_obj, output_path, base_dir, aws_creds, s3_bucket, parameter_overrides)
         if arguments.get('deploy'):
-            deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides)
+            tags = metadata[constants.TAGS_KEY]
+            deploy(aws_creds, aws_profile, deploy_region, output_path, stack_name, tags, parameter_overrides,
+                   confirm=bool(not arguments.get('--yes')))
     else:
-        print('Nothing to do')
+        print('Invalid Option')
 
 
-def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides=None):
+def lint_template(output_file_path):
+    (args, filenames, formatter) = cfnlint.core.get_args_filenames([output_file_path])
+    (template, rules, template_matches) = cfnlint.core.get_template_rules(filenames[0], args)
+    matches = []
+    if not template_matches:
+        matches.extend(
+            cfnlint.core.run_cli(
+                filenames[0], template, rules,
+                args.regions, args.override_spec))
+    else:
+        matches.extend(template_matches)
+    return formatter.print_matches(matches)
+
+
+def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides=None,
+           confirm=False):
     print(f"{Fore.LIGHTCYAN_EX} - Deploying Stack '{stack_name}' using AWS profile '{aws_profile}'{Fore.RESET}")
     # keeping the CFN way around for reference.
     # The new sam deploy way is great!
@@ -127,6 +155,10 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, t
 
     if parameter_overrides:
         command += ["--parameter-overrides", parameter_overrides]
+
+    # Re-enable once we figure out how to pass input to stdin
+    # if confirm:
+    #     command += ["--confirm-changeset"]
     execute_and_process(command, env=aws_creds)
 
 

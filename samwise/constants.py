@@ -3,7 +3,9 @@
 
 SAMWISE_CONFIGURATION_FILE = "~/.samwise"
 DEFAULT_TEMPLATE_FILE_PATH = ".samwise"
-DEFAULT_TEMPLATE_FILE_NAME = "samwise.yaml"
+SAMWISE_TEMPLATE_FILE_NAME = "samwise.yaml"
+AWS_SAM_TEMPLATE_FILE_NAME = "template.yaml"
+SAMWISE_SUPPORTED_VERSIONS = ["1.0"]
 
 
 # Metadata
@@ -13,6 +15,7 @@ VARS_KEY = "Variables"
 SAMWISE_KEY = "SAMWise"
 STACK_NAME_KEY = "StackName"
 NAMESPACE_KEY = "Namespace"
+DEPLOY_BUCKET_KEY = "DeployBucket"
 ACCOUNT_ID_KEY = "AccountId"
 DEPLOYBUCKET_NAME_KEY = "DeployBucket"
 FILE_INCLUDE_REGEX = rf"(.*)#{{{SAMWISE_KEY}::include ([a-zA-Z0-9./]+)}}"

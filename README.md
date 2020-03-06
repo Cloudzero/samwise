@@ -42,28 +42,32 @@ CloudFormation with all the speed of Serverless with none of the guilt and a cle
 compatibility if you ever wanted to revert back to the SAM cli.
 
 ### SAMWise to the rescue
-SAMWise can be used in one of two ways. You can add a SAMWise block to the `Metadata` section of your SAM
-template.yaml file and rename it to samwise.yaml or leave your `template.yaml` 100% alone
-and link to it in your samwise.yaml
+Just add a SAMWise block to the `Metadata` section of your existing AWS SAM
+template.yaml file and run samwise or leave your `template.yaml` alone
+create a `samwise.yaml` and add a link to your `template.yaml`. When you run samwise it will start by looking first for
+a `samwise.yaml`, before then trying and load your `template.yaml` and looking for the SAMWise block. If it doesn't find
+either, SAMWise will provide some friendly guidance and then safely exit without making any changes. 
 
     Metadata:
       SAMWise:
         Version: '1.0'
-        DeployBucket: <S3 DEPLOY BUCKET>
-        StackName: <YOUR STACK NAME>  # StackName is also provided as a #{SAMWise::Variable} or you can use the AWS:StackName pseudo parameter like a normal CFN template
-        SamTemplate: template.yaml    # OPTIONAL if you don't want to touch your template.yaml
-        Tags:
+        StackName: <YOUR STACK NAME>     # REQUIRED StackName is also made available as #{SAMWise::StackName} within your template
+        DeployBucket: <S3 DEPLOY BUCKET> # OPTIONAL if you don't specify a deploy bucket then the default `SAMWise-deploy-<AWS ACCOUNTID>` will be used 
+        SamTemplate: template.yaml       # OPTIONAL if you don't want to touch your template.yaml
+        Tags:                            # OPTIONAL Add stack tags to your deployment
           - Name: Value
-        Variables:                    # Provides simple #{Variable} token replacement within your template
-          - MyRuntimeVar              # Will prompt or require via CLI the value for MyRuntimeVar
-          - MyPreparedVar: SomeValue  # Some Prepared variable
+        Variables:                       # OPTIONAL Provides simple #{Variable} token replacement within your template
+          - MyRuntimeVar                 # Variables with no value will prompt at run time for their value
+          - MyPreparedVar: SomeValue     # Some Prepared variable
 
 Then deploy your stack:
 
     $ samwise deploy --profile <aws profile name> --namespace <namespace>
 
- > Note: `namespace` is a special variable that is slightly analogous to `stage`. You should use `namespace` liberally
-throughout your template so you can deploy multiple instantiations of your stack without collisions  
+> `--profile` is optional, if not provided, it will use the AWS session configured via environment variables or set as your default profile.
+
+>`--namespace` is required and is a special variable that is slightly analogous to `stage`. It is made available as `#{SAMWise::Namespace}`
+> within your template and should be used liberally so you can deploy multiple instantiations of your stack without collisions  
 
 ## Features
 - One line deploy with minimal command line arguments
@@ -82,13 +86,14 @@ throughout your template so you can deploy multiple instantiations of your stack
 
 ## Usage
 
-    SAMWise v0.0.6 - Tools for better living with the AWS Serverless Application model and CloudFormation
+    SAMWise v0.1.0 - Tools for better living with the AWS Serverless Application model and CloudFormation
     
     Usage:
+        samwise
         samwise generate --namespace <NAMESPACE> [--profile <PROFILE>] [--in <FILE>] [--out <FOLDER> | --print]
         samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER>]
         samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER>]
-        samwise (-h | --help)
+        samwise (--help | --version)
     
     Options:
         generate                        Process a samwise.yaml template and produce a CloudFormation template ready for packaging and deployment
@@ -103,6 +108,7 @@ throughout your template so you can deploy multiple instantiations of your stack
         --s3-bucket <BUCKET>            Deployment S3 Bucket.
         --region <REGION>               AWS region to deploy to [default: us-east-1].
         --print                         Sent output to screen.
+        -v --version
         -? --help                       Usage help.
 
 ## Using SAMWise Variable substitution and external file includes

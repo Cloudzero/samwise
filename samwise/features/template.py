@@ -88,6 +88,7 @@ def load(file_name, namespace, aws_account_id=None):
     # add default deploy bucket (if needed)
     if not samwise_metadata.get(DEPLOY_BUCKET_KEY):
         samwise_metadata[DEPLOY_BUCKET_KEY] = f"samwise-deployment-{aws_account_id}"
+    print(f"   - Deploy bucket is: {samwise_metadata[DEPLOY_BUCKET_KEY]}")
 
     template_obj = parse(template_text, samwise_metadata)
     return template_path, template_obj, samwise_metadata

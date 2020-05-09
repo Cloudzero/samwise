@@ -86,7 +86,7 @@ Then deploy your stack:
 
 ## Usage
 
-    SAMWise v0.1.0 - Tools for better living with the AWS Serverless Application model and CloudFormation
+    SAMWise v0.1.1 - Tools for better living with the AWS Serverless Application model and CloudFormation
     
     Usage:
         samwise

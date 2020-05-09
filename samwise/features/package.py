@@ -51,7 +51,7 @@ def build(parsed_template_obj, output_location, base_dir):
                f"{USER_CACHE_DIR}": {"bind": "/tmp/pip", "mode": "rw"}}
 
     print(f"   - Building Package using Docker {docker_image}")
-    shutil.rmtree(f"{output_location}/pkg/")
+    shutil.rmtree(f"{output_location}/pkg/", ignore_errors=True)
     os.mkdir(f"{output_location}/pkg/")
     container = client.containers.run(image=docker_image,
                                       command=command,

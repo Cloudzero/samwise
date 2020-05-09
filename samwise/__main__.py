@@ -36,7 +36,9 @@ import textwrap
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
+import boto3
 import cfnlint.core
+from botocore.exceptions import ClientError
 from colorama import Fore
 from docopt import docopt
 
@@ -184,9 +186,24 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
     else:
         print(f"{Fore.GREEN}   - No changes detected, skipping build{Fore.RESET}")
 
+    # Create the S3 bucket
+    print(f"   - Ensuring s3://{s3_bucket} exists", end='')
+    try:
+        client = boto3.client(
+            's3',
+            aws_access_key_id=aws_creds['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=aws_creds['AWS_SECRET_ACCESS_KEY'],
+            aws_session_token=aws_creds['AWS_SESSION_TOKEN'],
+        )
+        client.create_bucket(Bucket=s3_bucket)
+    except ClientError as error:
+        print(f"FATAL ERROR: Unable to create or verify deployment bucket {error}")
+        sys.exit(1)
+
     print(f"   - Saving to s3://{s3_bucket}/{stack_name}", end='')
     try:
         os.remove(f"{output_location}/samwise-pkg.zip")
+        os.remove(f"{output_location}/packaged.yaml")
     except OSError:
         pass
     with ZipFile(f"{output_location}/samwise-pkg.zip", 'w',
@@ -199,7 +216,6 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
                "--s3-prefix", stack_name,
                "--template-file", f"{output_location}/template.yaml",
                "--output-template-file", f"{output_location}/packaged.yaml"]
-
     execute_and_process(command, env=aws_creds, status_only=True)
     print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
 

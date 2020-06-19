@@ -33,6 +33,7 @@ import os
 import string
 import sys
 import textwrap
+from decimal import Decimal
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -45,7 +46,7 @@ from docopt import docopt
 from samwise import __version__, constants
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound, InvalidSAMWiseTemplate, \
     TemplateNotFound
-from samwise.features.package import build
+from samwise.features.package import build, slim_package_folder
 from samwise.features.template import load, save
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
@@ -186,8 +187,18 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
     else:
         print(f"{Fore.GREEN}   - No changes detected, skipping build{Fore.RESET}")
 
+    slim_package_folder(output_location)
+
+    pkg_size = get_lambda_package_size(f"{output_location}/pkg/")
+    if pkg_size > 250:
+        print(f"\n{Fore.LIGHTRED_EX}ERROR{Fore.RESET}: Package size would be over 250 MB limit ({pkg_size:.1f} MB)\n"
+              f"       Refactor your package requirements and try again.")
+        sys.exit(1)
+    else:
+        print(f" - Package size is {pkg_size:.1f} MB")
+
     # Create the S3 bucket
-    print(f"   - Ensuring s3://{s3_bucket} exists", end='')
+    print(f"   - Ensuring s3://{s3_bucket} exists")
     try:
         client = boto3.client(
             's3',
@@ -200,7 +211,7 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
         print(f"FATAL ERROR: Unable to create or verify deployment bucket {error}")
         sys.exit(1)
 
-    print(f"   - Saving to s3://{s3_bucket}/{stack_name}", end='')
+    print(f"   - Saving to s3://{s3_bucket}/{stack_name}")
     try:
         os.remove(f"{output_location}/samwise-pkg.zip")
         os.remove(f"{output_location}/packaged.yaml")
@@ -218,6 +229,11 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
                "--output-template-file", f"{output_location}/packaged.yaml"]
     execute_and_process(command, env=aws_creds, status_only=True)
     print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
+
+
+def get_lambda_package_size(output_location):
+    output_location_size_bytes = sum(f.stat().st_size for f in Path(output_location).glob('**/*') if f.is_file())
+    return output_location_size_bytes / (1024 * 1024)
 
 
 def check_for_code_changes(base_dir, template_globals):

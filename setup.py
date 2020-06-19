@@ -33,7 +33,7 @@ setup(
         'nested-lookup>=0.2.21',
         'pip>=20.0.2',
         'colorama>=0.4.3',
-        'aws-sam-cli>=0.43.0',
+        'aws-sam-cli>=0.53.0',
     ],
     license="MIT",
     zip_safe=False,

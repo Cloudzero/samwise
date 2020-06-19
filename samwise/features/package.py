@@ -8,7 +8,6 @@ from pathlib import Path
 import docker
 from nested_lookup import nested_lookup
 from pip._internal.locations import USER_CACHE_DIR
-from samwise.utils.cli import execute_and_process
 
 
 def check_docker(image_name):

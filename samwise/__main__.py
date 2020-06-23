@@ -109,7 +109,8 @@ def main():
     elif arguments.get('package') or arguments.get('deploy'):
         base_dir = os.path.dirname(template_path)
         s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
-        package(stack_name, template_obj, output_path, base_dir, aws_creds, s3_bucket, parameter_overrides)
+        force = bool(arguments.get('package'))
+        package(stack_name, template_obj, output_path, base_dir, aws_creds, s3_bucket, parameter_overrides, force)
         if arguments.get('deploy'):
             tags = metadata[constants.TAGS_KEY]
             deploy(aws_creds, aws_profile, deploy_region, output_path, stack_name, tags, parameter_overrides,
@@ -165,11 +166,12 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, t
     execute_and_process(command, env=aws_creds)
 
 
-def package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None):
+def package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None,
+            force=False):
     print(f"{Fore.LIGHTCYAN_EX} - Building Package{Fore.RESET}")
 
     changes_detected = check_for_code_changes(base_dir, parsed_template_obj['Globals'])
-    if changes_detected:
+    if changes_detected and not force:
         print(f"{Fore.YELLOW}   - Changed detected, rebuilding package{Fore.RESET}")
         # Keeping this here for reference.
         # The sam build way works but is _very_ inefficient and creates packages with

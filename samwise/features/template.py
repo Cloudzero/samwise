@@ -121,6 +121,12 @@ def parse(template_text, metadata):
         if v.get('Type') == 'AWS::Serverless::Function':
             final_template_obj['Resources'][k]['Properties']['CodeUri'] = 'samwise-pkg.zip'
 
+    layers = final_template_obj['Globals']['Function'].get('Layers') or []
+    if layers:
+        print('  - Layers detected')
+        for layer in layers:
+            print(layer)
+
     return final_template_obj
 
 

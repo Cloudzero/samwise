@@ -46,7 +46,8 @@ def build(parsed_template_obj, output_location, base_dir):
               f"pip uninstall awscli aws-sam-cli -y && pip install " \
               f"--cache-dir=/tmp/pip -r /the_project/requirements.txt -t /app/ && " \
               f"cp -rf /usr/lib64/libsnappy.* /app/ && " \
-              f"cp -r /the_project/{code_path} /app && cp -r /the_project/data /app/data\""
+              f"cp -r /the_project/{code_path} /app && cp -r /the_project/data /app/data && " \
+              f"chown -R {os.getuid()} /app\""
 
     output_location = os.path.abspath(output_location)
     base_dir = os.path.abspath(base_dir)

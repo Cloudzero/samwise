@@ -6,8 +6,8 @@
 Usage:
     samwise lint --namespace <NAMESPACE> [--profile <PROFILE> --in <FILE> --out <FOLDER>]
     samwise generate --namespace <NAMESPACE> [--profile <PROFILE> --in <FILE>] [--out <FOLDER> | --print]
-    samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER> --yes]
-    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER> --yes]
+    samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER> --yes --cache-dir <FOLDER>]
+    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER> --yes --cache-dir <FOLDER>]
     samwise (--help | --version)
 
 Options:
@@ -17,6 +17,7 @@ Options:
     deploy                          Generate, Package and Deploy your code
     --in <FILE>                     Input file.
     --out <FOLDER>                  Output folder.
+    --cache-dir <FOLDER>            Use specific folder for package caching, otherwise use system default
     --profile <PROFILE>             AWS Profile to use.
     --namespace <NAMESPACE>         System namespace to distinguish this deployment from others
     --vars <INPUT>                  SAMWise pre-processed variable substitutions (name=value)
@@ -28,13 +29,10 @@ Options:
     -v --version                    Print the SAMWise version number
     -? --help                       Usage help.
 """
-import json
 import os
 import string
 import sys
 import textwrap
-from decimal import Decimal
-from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import boto3
@@ -42,7 +40,6 @@ import cfnlint.core
 from botocore.exceptions import ClientError
 from colorama import Fore
 from docopt import docopt
-
 from samwise import __version__, constants
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound, InvalidSAMWiseTemplate, \
     TemplateNotFound
@@ -50,8 +47,8 @@ from samwise.features.package import build, slim_package_folder
 from samwise.features.template import load, save
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
-from samwise.utils.filesystem import hash_directory
-from samwise.utils.tools import hash_string, yaml_print, yaml_dumps
+from samwise.utils.filesystem import check_for_code_changes
+from samwise.utils.tools import yaml_print
 from samwise.utils.zip import zipdir
 
 
@@ -109,9 +106,11 @@ def main():
     elif arguments.get('package') or arguments.get('deploy'):
         base_dir = os.path.dirname(template_path)
         s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
-        force = bool(arguments.get('package'))
-        package(stack_name, template_obj, output_path, base_dir, aws_creds, s3_bucket, parameter_overrides, force)
+        force = bool(arguments.get('package'))  # if packaging was specifically requested, always build
+        package(stack_name, template_obj, output_path, base_dir, aws_creds, s3_bucket, parameter_overrides, force,
+                arguments.get('--cache-dir'))
         if arguments.get('deploy'):
+            upload(aws_creds, output_path, s3_bucket, stack_name)
             tags = metadata[constants.TAGS_KEY]
             deploy(aws_creds, aws_profile, deploy_region, output_path, stack_name, tags, parameter_overrides,
                    confirm=bool(not arguments.get('--yes')))
@@ -131,6 +130,69 @@ def lint_template(output_file_path):
     else:
         matches.extend(template_matches)
     return formatter.print_matches(matches)
+
+
+def package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket,
+            parameter_overrides=None,
+            force=False,
+            cache_dir=None):
+    print(f"{Fore.LIGHTCYAN_EX} - Building Package{Fore.RESET}")
+
+    changes_detected = check_for_code_changes(base_dir, parsed_template_obj['Globals'])
+    if changes_detected or force:
+        print(f"{Fore.YELLOW}   - Changed detected, rebuilding package{Fore.RESET}")
+        # Keeping this here for reference.
+        # The sam build way works but is _very_ inefficient and creates packages with
+        # potential namespace collisions :-(
+
+        # command = ["sam", "build", "--use-container", "-m", "requirements.txt",
+        #            "--build-dir", f"{output_location}/build",
+        #            "--base-dir", base_dir,
+        #            "--template", f"{output_location}/template.yaml"]
+        # if parameter_overrides:
+        #     command += ["--parameter-overrides", parameter_overrides.strip()]
+        # execute_and_process(command)
+        build(parsed_template_obj, output_location, base_dir, cache_dir)
+        print(f"{Fore.GREEN}   - Build successful!{Fore.RESET}")
+    else:
+        print(f"{Fore.GREEN}   - No changes detected, skipping build{Fore.RESET}")
+
+    slim_package_folder(output_location)
+
+
+def upload(aws_creds, output_location, s3_bucket, stack_name):
+    # Create the S3 bucket
+    try:
+        client = boto3.client(
+            's3',
+            aws_access_key_id=aws_creds['AWS_ACCESS_KEY_ID'],
+            aws_secret_access_key=aws_creds['AWS_SECRET_ACCESS_KEY'],
+            aws_session_token=aws_creds['AWS_SESSION_TOKEN'],
+        )
+        client.create_bucket(Bucket=s3_bucket)
+    except ClientError as error:
+        print(f"FATAL ERROR: Unable to create or verify deployment bucket {error}")
+        sys.exit(1)
+
+    print(f"{Fore.LIGHTCYAN_EX} - Saving package to s3://{s3_bucket}/{stack_name}", end='', flush=True)
+    try:
+        os.remove(f"{output_location}/samwise-pkg.zip")
+        os.remove(f"{output_location}/packaged.yaml")
+    except OSError:
+        pass
+
+    with ZipFile(f"{output_location}/samwise-pkg.zip", 'w',
+                 compression=ZIP_DEFLATED,
+                 compresslevel=9) as myzip:
+        zipdir(f"{output_location}/pkg", myzip)
+
+    command = ["aws", "cloudformation", "package",
+               "--s3-bucket", s3_bucket,
+               "--s3-prefix", stack_name,
+               "--template-file", f"{output_location}/template.yaml",
+               "--output-template-file", f"{output_location}/packaged.yaml"]
+    execute_and_process(command, env=aws_creds, status_only=True)
+    print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
 
 
 def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides=None,
@@ -164,113 +226,6 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, t
     # if confirm:
     #     command += ["--confirm-changeset"]
     execute_and_process(command, env=aws_creds)
-
-
-def package(stack_name, parsed_template_obj, output_location, base_dir, aws_creds, s3_bucket, parameter_overrides=None,
-            force=False):
-    print(f"{Fore.LIGHTCYAN_EX} - Building Package{Fore.RESET}")
-
-    changes_detected = check_for_code_changes(base_dir, parsed_template_obj['Globals'])
-    if changes_detected and not force:
-        print(f"{Fore.YELLOW}   - Changed detected, rebuilding package{Fore.RESET}")
-        # Keeping this here for reference.
-        # The sam build way works but is _very_ inefficient and creates packages with
-        # potential namespace collisions :-(
-
-        # command = ["sam", "build", "--use-container", "-m", "requirements.txt",
-        #            "--build-dir", f"{output_location}/build",
-        #            "--base-dir", base_dir,
-        #            "--template", f"{output_location}/template.yaml"]
-        # if parameter_overrides:
-        #     command += ["--parameter-overrides", parameter_overrides.strip()]
-        # execute_and_process(command)
-        build(parsed_template_obj, output_location, base_dir)
-        print(f"{Fore.GREEN}   - Build successful!{Fore.RESET}")
-    else:
-        print(f"{Fore.GREEN}   - No changes detected, skipping build{Fore.RESET}")
-
-    slim_package_folder(output_location)
-
-    pkg_size = get_lambda_package_size(f"{output_location}/pkg/")
-    if pkg_size > 250:
-        print(f"\n{Fore.LIGHTRED_EX}ERROR{Fore.RESET}: Package size would be over 250 MB limit ({pkg_size:.1f} MB)\n"
-              f"       Refactor your package requirements and try again.")
-        sys.exit(1)
-    else:
-        print(f" - Package size is {pkg_size:.1f} MB")
-
-    # Create the S3 bucket
-    print(f"   - Ensuring s3://{s3_bucket} exists")
-    try:
-        client = boto3.client(
-            's3',
-            aws_access_key_id=aws_creds['AWS_ACCESS_KEY_ID'],
-            aws_secret_access_key=aws_creds['AWS_SECRET_ACCESS_KEY'],
-            aws_session_token=aws_creds['AWS_SESSION_TOKEN'],
-        )
-        client.create_bucket(Bucket=s3_bucket)
-    except ClientError as error:
-        print(f"FATAL ERROR: Unable to create or verify deployment bucket {error}")
-        sys.exit(1)
-
-    print(f"   - Saving to s3://{s3_bucket}/{stack_name}")
-    try:
-        os.remove(f"{output_location}/samwise-pkg.zip")
-        os.remove(f"{output_location}/packaged.yaml")
-    except OSError:
-        pass
-    with ZipFile(f"{output_location}/samwise-pkg.zip", 'w',
-                 compression=ZIP_DEFLATED,
-                 compresslevel=9) as myzip:
-        zipdir(f"{output_location}/pkg", myzip)
-
-    command = ["aws", "cloudformation", "package",
-               "--s3-bucket", s3_bucket,
-               "--s3-prefix", stack_name,
-               "--template-file", f"{output_location}/template.yaml",
-               "--output-template-file", f"{output_location}/packaged.yaml"]
-    execute_and_process(command, env=aws_creds, status_only=True)
-    print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
-
-
-def get_lambda_package_size(output_location):
-    output_location_size_bytes = sum(f.stat().st_size for f in Path(output_location).glob('**/*') if f.is_file())
-    return output_location_size_bytes / (1024 * 1024)
-
-
-def check_for_code_changes(base_dir, template_globals):
-    """
-
-    Args:
-        base_dir:
-        template_globals:
-
-    Returns:
-        Bool: true/false if code has changes
-    """
-    code_path = template_globals['Function']['CodeUri']
-    config_file = Path(constants.SAMWISE_CONFIGURATION_FILE).expanduser()
-    if config_file.exists():
-        config = json.load(config_file.open())
-    else:
-        config = {}
-    requirements_file = os.path.join(base_dir, "requirements.txt")
-    req_modified_time = os.path.getmtime(requirements_file)
-
-    abs_code_path = os.path.abspath(os.path.join(base_dir, code_path))
-    src_hash = hash_directory(abs_code_path)
-
-    globals_hash = hash_string(yaml_dumps(template_globals))
-
-    changes = bool(req_modified_time > config.get(requirements_file, 0) or
-                   (src_hash != config.get(abs_code_path)) or
-                   globals_hash != config.get(f"{code_path}|globals_hash"))
-
-    config[requirements_file] = req_modified_time
-    config[abs_code_path] = src_hash
-    config[f"{code_path}|globals_hash"] = globals_hash
-    json.dump(config, config_file.open('w'))
-    return changes
 
 
 if __name__ == "__main__":

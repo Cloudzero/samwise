@@ -3,11 +3,14 @@
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 
 import docker
+from colorama import Fore
 from nested_lookup import nested_lookup
 from pip._internal.locations import USER_CACHE_DIR
+from samwise.utils.filesystem import get_lambda_package_size
 
 
 def check_docker(image_name):
@@ -36,24 +39,27 @@ def get_python_runtime_image(parsed_template_obj):
     return runtime, lambda_python_containers[runtime]
 
 
-def build(parsed_template_obj, output_location, base_dir):
+def build(parsed_template_obj, output_location, base_dir, cache_dir):
     runtime, docker_image = get_python_runtime_image(parsed_template_obj)
     print(f'   - Found Python runtime {runtime}')
     client = check_docker("lambci/lambda:latest")
 
     code_path = parsed_template_obj['Globals']['Function']['CodeUri']
-    command = f"/bin/sh -c \"yum install -y snappy-devel && pip install pip --upgrade && " \
-              f"pip uninstall awscli aws-sam-cli -y && pip install " \
-              f"--cache-dir=/tmp/pip -r /the_project/requirements.txt -t /app/ && " \
+    command = f"/bin/sh -c \"yum install -y snappy-devel && " \
+              f"pip install pip --upgrade && " \
+              f"pip uninstall awscli aws-sam-cli -y && " \
+              f"chown -R $UID /tmp/pip && " \
+              f"pip install --cache-dir=/tmp/pip -r /the_project/requirements.txt -t /app/ && " \
               f"cp -rf /usr/lib64/libsnappy.* /app/ && " \
               f"cp -r /the_project/{code_path} /app && cp -r /the_project/data /app/data && " \
-              f"chown -R {os.getuid()} /app\""
+              f"chown -R {os.getuid()} /app /tmp/pip\""
 
     output_location = os.path.abspath(output_location)
     base_dir = os.path.abspath(base_dir)
+    cache_dir = os.path.abspath(cache_dir or USER_CACHE_DIR)
     volumes = {f"{output_location}/pkg": {"bind": "/app", "mode": "rw"},
                f"{base_dir}": {"bind": "/the_project", "mode": "ro"},
-               f"{USER_CACHE_DIR}": {"bind": "/tmp/pip", "mode": "rw"}}
+               f"{cache_dir}": {"bind": "/tmp/pip", "mode": "rw"}}
 
     print(f"   - Building Package using Docker {docker_image}")
     shutil.rmtree(f"{output_location}/pkg/", ignore_errors=True)
@@ -70,8 +76,9 @@ def build(parsed_template_obj, output_location, base_dir):
 
 
 def slim_package_folder(output_location):
-    print(" - Slimming package", end="")
-    pattern = re.compile(r"(dist-info|__pycache__|\.pyc|\.pyo$)")
+    print(f"{Fore.LIGHTCYAN_EX} - Slimming package", end="")
+    before_pkg_size = get_lambda_package_size(f"{output_location}/pkg/")
+    pattern = re.compile(r"(dist-info|__pycache__|\.pyc|\.pyo$|tests|test)")
     package_files = Path(f"{output_location}/pkg").glob('**/*')
     for file in package_files:
         if pattern.search(file.name):
@@ -82,4 +89,12 @@ def slim_package_folder(output_location):
                 # print(f"Delete file  : {file.name}")
                 file.unlink(missing_ok=True)
             print('.', end="")
-    print(".done")
+    print(f"{Fore.RESET}")
+
+    final_pkg_size = get_lambda_package_size(f"{output_location}/pkg/")
+    if final_pkg_size > 250:
+        print(f"\n{Fore.LIGHTRED_EX}ERROR{Fore.RESET}: Package would be over 250 MB limit ({final_pkg_size:.1f} MB)\n"
+              f"       Refactor your package requirements and try again.")
+        sys.exit(1)
+    else:
+        print(f"   - Reduced package size from {before_pkg_size:.1f} MB to {final_pkg_size:.1f} MB")

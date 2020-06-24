@@ -78,7 +78,7 @@ def build(parsed_template_obj, output_location, base_dir, cache_dir):
 def slim_package_folder(output_location):
     print(f"{Fore.LIGHTCYAN_EX} - Slimming package", end="")
     before_pkg_size = get_lambda_package_size(f"{output_location}/pkg/")
-    pattern = re.compile(r"(dist-info|__pycache__|\.pyc|\.pyo$|tests|test)")
+    pattern = re.compile(r"(dist-info|__pycache__|\.pyc|\.pyo$)")
     package_files = Path(f"{output_location}/pkg").glob('**/*')
     for file in package_files:
         if pattern.search(file.name):

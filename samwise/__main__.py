@@ -77,7 +77,7 @@ def main():
     output_path = arguments.get('--out') or constants.DEFAULT_TEMPLATE_FILE_PATH
 
     aws_creds = get_aws_credentials(aws_profile)
-    aws_account_id = aws_creds['AWS_ACCOUNT_ID']
+    aws_account_id = str(aws_creds['AWS_ACCOUNT_ID'])
 
     print(f"{Fore.LIGHTCYAN_EX} - Looking for a SAMWise template{Fore.RESET}")
     try:

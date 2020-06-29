@@ -37,7 +37,7 @@ def load(file_name, namespace, aws_account_id=None):
     # By doing this here, we can support SAMWise vars even in the SAMWise metadata block
     aws_account_id = aws_account_id or f"{{{SAMWISE_KEY}::{ACCOUNT_ID_KEY}}}"
     namespace = namespace or f"{{{SAMWISE_KEY}::{NAMESPACE_KEY}}}"
-    system_vars = {f"{SAMWISE_KEY}::{ACCOUNT_ID_KEY}": aws_account_id,
+    system_vars = {f"{SAMWISE_KEY}::{ACCOUNT_ID_KEY}": str(aws_account_id),
                    f"{SAMWISE_KEY}::{NAMESPACE_KEY}": namespace}
     template_text = search_and_replace_samwise_variables(template_text, system_vars)
     samwise_obj = YAML().load(template_text)

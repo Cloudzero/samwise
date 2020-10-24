@@ -46,7 +46,7 @@ def build(parsed_template_obj, output_location, base_dir, cache_dir):
 
     code_path = parsed_template_obj['Globals']['Function']['CodeUri']
     command = f"/bin/sh -c \"yum install -y snappy-devel && " \
-              f"pip install pip --upgrade && " \
+              f"pip install pip==20.1.1 && " \
               f"pip uninstall awscli aws-sam-cli -y && " \
               f"chown -R $UID /tmp/pip && " \
               f"pip install --cache-dir=/tmp/pip -r /the_project/requirements.txt -t /app/ && " \
@@ -69,8 +69,15 @@ def build(parsed_template_obj, output_location, base_dir, cache_dir):
                                       volumes=volumes,
                                       remove=True,
                                       detach=True)
+    error_words = ["error", 'fail']
     for line in container.logs(stream=True):
-        print(f"     > {line.decode('utf-8')}", end='', flush=True)
+        msg = line.decode('utf-8')
+        if any(word in msg for word in error_words):
+            print(f"     {Fore.LIGHTRED_EX}! {msg}{Fore.RESET}", end='\n\n', flush=True)
+            print(f"{Fore.LIGHTRED_EX} - Build error detected, please correct and try again{Fore.RESET}")
+            sys.exit(1)
+        else:
+            print(f"     > {msg}", end='', flush=True)
 
     return True
 

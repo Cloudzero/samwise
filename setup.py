@@ -22,7 +22,7 @@ setup(
     package_data={'samwise': ['data/*']},
     include_package_data=True,
     install_requires=[
-        'boto3>=1.12.15',
+        'boto3>=1.14.63',
         'docopt>=0.6.2',
         'cfn-lint>=0.28.3'
         'awscli>=1.18.15',
@@ -33,7 +33,7 @@ setup(
         'nested-lookup>=0.2.21',
         'pip>=20.0.2',
         'colorama>=0.4.3',
-        'aws-sam-cli>=0.53.0',
+        'aws-sam-cli>=1.2.0',
     ],
     license="MIT",
     zip_safe=False,

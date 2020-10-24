@@ -7,7 +7,7 @@ Usage:
     samwise lint --namespace <NAMESPACE> [--profile <PROFILE> --in <FILE> --out <FOLDER>]
     samwise generate --namespace <NAMESPACE> [--profile <PROFILE> --in <FILE>] [--out <FOLDER> | --print]
     samwise package --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --in <FILE> --out <FOLDER> --yes --cache-dir <FOLDER>]
-    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER> --yes --cache-dir <FOLDER>]
+    samwise deploy --namespace <NAMESPACE> [--profile <PROFILE> --vars <INPUT> --parameter-overrides <INPUT> --s3-bucket <BUCKET> --region <REGION> --in <FILE> --out <FOLDER> --yes --cache-dir <FOLDER> --force]
     samwise (--help | --version)
 
 Options:
@@ -15,6 +15,7 @@ Options:
     generate                        Process a samwise.yaml template and produce a CloudFormation template ready for packaging and deployment
     package                         Generate and Package your code (including sending to S3)
     deploy                          Generate, Package and Deploy your code
+    --force                         Force the action to happen, even if SAMWise thinks it can skip it
     --in <FILE>                     Input file.
     --out <FOLDER>                  Output folder.
     --cache-dir <FOLDER>            Use specific folder for package caching, otherwise use system default
@@ -41,13 +42,14 @@ from botocore.exceptions import ClientError
 from colorama import Fore
 from docopt import docopt
 from samwise import __version__, constants
+from samwise.constants import PACKAGED_TEMPLATE_FILE_NAME, AWS_SAM_TEMPLATE_FILE_NAME
 from samwise.exceptions import UnsupportedSAMWiseVersion, InlineIncludeNotFound, InvalidSAMWiseTemplate, \
     TemplateNotFound
 from samwise.features.package import build, slim_package_folder
-from samwise.features.template import load, save
+from samwise.features.template import load, save, get_template_code_path
 from samwise.utils.aws import get_aws_credentials
 from samwise.utils.cli import execute_and_process
-from samwise.utils.filesystem import check_for_code_changes
+from samwise.utils.filesystem import check_for_project_changes
 from samwise.utils.tools import yaml_print
 from samwise.utils.zip import zipdir
 
@@ -90,7 +92,7 @@ def main():
     print(f"   - Stack {stack_name} loaded")
 
     save(template_obj, output_path)
-    output_file_path = f"{os.path.abspath(output_path)}/template.yaml"
+    output_file_path = f"{os.path.abspath(output_path)}/{AWS_SAM_TEMPLATE_FILE_NAME}"
     print(f"   - CloudFormation Template rendered to {output_file_path}")
 
     if arguments.get('lint'):
@@ -106,7 +108,7 @@ def main():
     elif arguments.get('package') or arguments.get('deploy'):
         base_dir = os.path.dirname(template_path)
         s3_bucket = arguments.get('--s3-bucket') or metadata[constants.DEPLOYBUCKET_NAME_KEY]
-        force = bool(arguments.get('package'))  # if packaging was specifically requested, always build
+        force = bool(arguments.get('package')) or arguments.get('--force')  # if packaging was requested or forced
         package(stack_name, template_obj, output_path, base_dir, aws_creds, s3_bucket, parameter_overrides, force,
                 arguments.get('--cache-dir'))
         if arguments.get('deploy'):
@@ -138,9 +140,8 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
             cache_dir=None):
     print(f"{Fore.LIGHTCYAN_EX} - Building Package{Fore.RESET}")
 
-    changes_detected = check_for_code_changes(base_dir, parsed_template_obj['Globals'])
+    changes_detected = check_for_project_changes(stack_name, base_dir, parsed_template_obj)
     if changes_detected or force:
-        print(f"{Fore.YELLOW}   - Changed detected, rebuilding package{Fore.RESET}")
         # Keeping this here for reference.
         # The sam build way works but is _very_ inefficient and creates packages with
         # potential namespace collisions :-(
@@ -148,16 +149,19 @@ def package(stack_name, parsed_template_obj, output_location, base_dir, aws_cred
         # command = ["sam", "build", "--use-container", "-m", "requirements.txt",
         #            "--build-dir", f"{output_location}/build",
         #            "--base-dir", base_dir,
-        #            "--template", f"{output_location}/template.yaml"]
+        #            "--template", f"{output_location}/{AWS_SAM_TEMPLATE_FILE_NAME}"]
         # if parameter_overrides:
         #     command += ["--parameter-overrides", parameter_overrides.strip()]
         # execute_and_process(command)
-        build(parsed_template_obj, output_location, base_dir, cache_dir)
-        print(f"{Fore.GREEN}   - Build successful!{Fore.RESET}")
+        if get_template_code_path(parsed_template_obj):
+            print(f"{Fore.YELLOW}   - Changed detected, rebuilding package{Fore.RESET}")
+            build(parsed_template_obj, output_location, base_dir, cache_dir)
+            print(f"{Fore.GREEN}   - Build successful!{Fore.RESET}")
+            slim_package_folder(output_location)
+        else:
+            print(f"{Fore.GREEN}   - No code in this project to build{Fore.RESET}")
     else:
-        print(f"{Fore.GREEN}   - No changes detected, skipping build{Fore.RESET}")
-
-    slim_package_folder(output_location)
+        print(f"{Fore.GREEN}   - No changes detected, skipping{Fore.RESET}")
 
 
 def upload(aws_creds, output_location, s3_bucket, stack_name):
@@ -177,7 +181,7 @@ def upload(aws_creds, output_location, s3_bucket, stack_name):
     print(f"{Fore.LIGHTCYAN_EX} - Saving package to s3://{s3_bucket}/{stack_name}", end='', flush=True)
     try:
         os.remove(f"{output_location}/samwise-pkg.zip")
-        os.remove(f"{output_location}/packaged.yaml")
+        os.remove(f"{output_location}/{PACKAGED_TEMPLATE_FILE_NAME}")
     except OSError:
         pass
 
@@ -189,10 +193,12 @@ def upload(aws_creds, output_location, s3_bucket, stack_name):
     command = ["aws", "cloudformation", "package",
                "--s3-bucket", s3_bucket,
                "--s3-prefix", stack_name,
-               "--template-file", f"{output_location}/template.yaml",
-               "--output-template-file", f"{output_location}/packaged.yaml"]
+               "--template-file", f"{output_location}/{AWS_SAM_TEMPLATE_FILE_NAME}",
+               "--use-json",
+               "--output-template-file", f"{output_location}/{PACKAGED_TEMPLATE_FILE_NAME}"]
+
     execute_and_process(command, env=aws_creds, status_only=True)
-    print(f"{Fore.GREEN}   - Upload successful{Fore.RESET}")
+    print(f"{Fore.GREEN}   - Packaging successful{Fore.RESET}")
 
 
 def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, tags, parameter_overrides=None,
@@ -212,7 +218,7 @@ def deploy(aws_creds, aws_profile, deploy_region, output_location, stack_name, t
     print(f"       {formatted_tags}")
 
     command = ["sam", "deploy",
-               "--template-file", f"{output_location}/packaged.yaml",
+               "--template-file", f"{output_location}/{PACKAGED_TEMPLATE_FILE_NAME}",
                "--capabilities", "CAPABILITY_IAM", "CAPABILITY_NAMED_IAM",
                "--region", deploy_region,
                "--no-fail-on-empty-changeset",

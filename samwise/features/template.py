@@ -5,6 +5,7 @@ import re
 import textwrap
 from pathlib import Path
 
+from nested_lookup import nested_alter
 from ruamel.yaml import YAML
 from voluptuous import REMOVE_EXTRA, All, Length, Optional, Required, Schema, Invalid, MultipleInvalid
 from voluptuous.humanize import humanize_error
@@ -95,7 +96,7 @@ def load(file_name, namespace, aws_account_id=None):
 
 
 def save(template_yaml_obj, output_file_location):
-    output_file = f"{output_file_location}/template.yaml"
+    output_file = f"{output_file_location}/{AWS_SAM_TEMPLATE_FILE_NAME}"
     os.makedirs(output_file_location, exist_ok=True)
     out = Path(output_file)
     YAML().dump(template_yaml_obj, out)
@@ -121,6 +122,10 @@ def parse(template_text, metadata):
         if v.get('Type') == 'AWS::Serverless::Function':
             final_template_obj['Resources'][k]['Properties']['CodeUri'] = 'samwise-pkg.zip'
 
+    # Force Version elements to be strings, there are parts of the aws cli that wants to turn them into datetime objs
+    nested_alter(final_template_obj, key='Version', callback_function=lambda x: f"{x}", in_place=True)
+
+    # placeholder for future layers analysis work
     layers = final_template_obj['Globals']['Function'].get('Layers') or []
     if layers:
         print('  - Layers detected')
@@ -158,3 +163,24 @@ def search_and_replace_file_include_token(yaml_string):
             # if we can't find the file, drop out here
             raise InlineIncludeNotFound(f"Error on line {line_number}: Could not find inline include file {file_path}")
     return yaml_string
+
+
+def get_template_code_path(template):
+    """
+    Return Code path for template or empty string if none
+
+    Args:
+        template:
+
+    Returns:
+        Str
+    """
+    if template.get('Globals'):
+        code_path = template['Globals'].get('Function', {}).get('CodeUri') or ""
+        isExist = os.path.exists(code_path)
+        if isExist:
+            return code_path
+        else:
+            return ""
+    else:
+        return ""

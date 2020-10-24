@@ -6,6 +6,7 @@ import hashlib
 from pathlib import Path
 
 from samwise import constants
+from samwise.features.template import get_template_code_path
 from samwise.utils.tools import hash_string, yaml_dumps
 
 
@@ -34,36 +35,42 @@ def get_lambda_package_size(output_location):
     return output_location_size_bytes / (1024 * 1024)
 
 
-def check_for_code_changes(base_dir, template_globals):
+def check_for_project_changes(stack_name, base_dir, template):
     """
 
     Args:
-        base_dir:
-        template_globals:
+        stack_name: str
+        base_dir: str
+        template:
 
     Returns:
-        Bool: true/false if code has changes
+        Bool: true/false if project has changes
     """
-    code_path = template_globals['Function']['CodeUri']
+    globals_hash = hash_string(yaml_dumps(template))
+
     config_file = Path(constants.SAMWISE_CONFIGURATION_FILE).expanduser()
     if config_file.exists():
         config = json.load(config_file.open())
+        stack_config = config.get(stack_name) or {}
     else:
         config = {}
-    requirements_file = os.path.join(base_dir, "requirements.txt")
-    req_modified_time = os.path.getmtime(requirements_file)
+        stack_config = {}
 
-    abs_code_path = os.path.abspath(os.path.join(base_dir, code_path))
-    src_hash = hash_directory(abs_code_path)
+    code_path = get_template_code_path(template)
+    if code_path:
+        requirements_file = os.path.join(base_dir, "requirements.txt")
+        req_modified_time = os.path.getmtime(requirements_file)
+        abs_code_path = os.path.abspath(os.path.join(base_dir, code_path))
+        src_hash = hash_directory(abs_code_path)
+        code_changes = (req_modified_time > stack_config.get(requirements_file, 0)) or (src_hash != stack_config.get(abs_code_path))
 
-    globals_hash = hash_string(yaml_dumps(template_globals))
+        stack_config[requirements_file] = req_modified_time
+        stack_config[abs_code_path] = src_hash
+    else:
+        code_changes = False
 
-    changes = bool(req_modified_time > config.get(requirements_file, 0) or
-                   (src_hash != config.get(abs_code_path)) or
-                   globals_hash != config.get(f"{code_path}|globals_hash"))
-
-    config[requirements_file] = req_modified_time
-    config[abs_code_path] = src_hash
-    config[f"{code_path}|globals_hash"] = globals_hash
+    changes = bool(code_changes or globals_hash != stack_config.get("globals_hash"))
+    stack_config["globals_hash"] = globals_hash
+    config[stack_name] = stack_config
     json.dump(config, config_file.open('w'))
     return changes
